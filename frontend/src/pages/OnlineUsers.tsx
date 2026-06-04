@@ -1,0 +1,134 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../lib/api';
+import { wsClient } from '../lib/websocket';
+import { useAuthStore } from '../store/auth';
+import { useChatStore } from '../store/chat';
+import { Avatar } from '../components/Avatar';
+import { Badge } from '../components/Badge';
+import type { OnlineUser } from '../lib/types';
+import type { WsPresenceSnapshot, WsPresenceJoin, WsPresenceLeave } from '../lib/types';
+
+export const OnlineUsers: React.FC = () => {
+  const navigate = useNavigate();
+  const { user: me, isGuest } = useAuthStore();
+  const unread = useChatStore((s) => s.unread);
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [addingFriend, setAddingFriend] = useState<string | null>(null);
+
+  // Initial fetch
+  useEffect(() => {
+    api.get<OnlineUser[]>('/users/online').then(setOnlineUsers).catch(() => {});
+  }, []);
+
+  // WS presence events
+  const handlePresence = useCallback(
+    (msg: WsPresenceSnapshot | WsPresenceJoin | WsPresenceLeave) => {
+      if (msg.data.event === 'snapshot') {
+        const users = msg.data.users;
+        setOnlineUsers(users);
+      } else if (msg.data.event === 'join') {
+        const joined = msg.data.user;
+        setOnlineUsers((prev) => {
+          const exists = prev.find((u) => u.id === joined.id);
+          if (exists) return prev;
+          return [...prev, joined];
+        });
+      } else if (msg.data.event === 'leave') {
+        const leftId = msg.data.id;
+        setOnlineUsers((prev) => prev.filter((u) => u.id !== leftId));
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    wsClient.on('presence', handlePresence);
+    return () => wsClient.off('presence', handlePresence);
+  }, [handlePresence]);
+
+  const handleAddFriend = async (e: React.MouseEvent, userId: string) => {
+    e.stopPropagation();
+    if (isGuest) return;
+    setAddingFriend(userId);
+    try {
+      await api.post(`/friends/request/${userId}`);
+    } catch {
+      // ignore (might already be a friend)
+    } finally {
+      setAddingFriend(null);
+    }
+  };
+
+  const visibleUsers = onlineUsers.filter((u) => u.id !== me?.id);
+
+  return (
+    <div
+      data-testid="online-users"
+      className="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col"
+    >
+      <div className="px-4 py-3 border-b border-gray-100">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          Online — {visibleUsers.length}
+        </h2>
+      </div>
+
+      <div className="flex-1 overflow-y-auto py-2">
+        {visibleUsers.length === 0 && (
+          <p className="px-4 py-6 text-sm text-gray-400 text-center">No one else online</p>
+        )}
+        {visibleUsers.map((u) => (
+          <div
+            key={u.id}
+            data-testid="user-item"
+            className="flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 cursor-pointer rounded-lg mx-1 group transition-colors"
+            onClick={() => navigate(`/app/chat/${u.id}`)}
+          >
+            <div className="relative flex-shrink-0">
+              <Avatar src={u.avatar_url} name={u.display_name} size="sm" />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{u.display_name}</p>
+              {u.is_guest && (
+                <Badge variant="gray">Guest</Badge>
+              )}
+            </div>
+            {/* Unread message count */}
+            {(unread[u.id] ?? 0) > 0 && (
+              <span
+                data-testid="unread-badge"
+                className="flex-shrink-0 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium"
+              >
+                {unread[u.id] > 9 ? '9+' : unread[u.id]}
+              </span>
+            )}
+            {/* Add Friend button for registered targets */}
+            {!isGuest && !u.is_guest && (
+              <button
+                data-testid="add-friend-btn"
+                onClick={(e) => handleAddFriend(e, u.id)}
+                disabled={addingFriend === u.id}
+                title="Add Friend"
+                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-blue-100 text-blue-500 transition-all"
+              >
+                {addingFriend === u.id ? (
+                  <span className="text-xs">...</span>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                    />
+                  </svg>
+                )}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};

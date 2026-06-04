@@ -1,0 +1,175 @@
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:
+
+services:
+  # ------------------------------------------------------------------ #
+  # Nginx — production entry point (reverse proxy + static assets)      #
+  # ------------------------------------------------------------------ #
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------ #
+  # Frontend — React SPA served by nginx:alpine                         #
+  # ------------------------------------------------------------------ #
+  frontend:
+    build: ./frontend
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------ #
+  # Backend — FastAPI (REST + WebSocket)                                 #
+  # ------------------------------------------------------------------ #
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-chat}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-chatdb}"
+      REDIS_URL: "redis://redis:6379"
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      KAFKA_ENABLED: "true"
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET}"
+      # Must go through nginx (port 80), not the unpublished backend port 8000,
+      # and match exactly the authorised redirect URI in the Google console.
+      GOOGLE_REDIRECT_URI: "${GOOGLE_REDIRECT_URI:-http://localhost/auth/google/callback}"
+      JWT_SECRET: "${JWT_SECRET}"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:-minioadmin}"
+      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:-minioadmin}"
+      MINIO_BUCKET: "${MINIO_BUCKET:-avatars}"
+      MINIO_SECURE: "false"
+      # Empty => avatar URLs are stored relative ("/<bucket>/<object>") and
+      # served same-origin through nginx, which proxies /avatars/ to MinIO.
+      MINIO_PUBLIC_URL: ""
+      FRONTEND_ORIGIN: "${FRONTEND_ORIGIN:-http://localhost}"
+      DEV_AUTH_ENABLED: "${DEV_AUTH_ENABLED:-false}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_started
+      minio:
+        condition: service_started
+    networks:
+      - internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  # ------------------------------------------------------------------ #
+  # PostgreSQL 16                                                        #
+  # ------------------------------------------------------------------ #
+  postgres:
+    image: postgres:16-alpine
+    env_file: .env
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-chat}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB:-chatdb}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chat}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ------------------------------------------------------------------ #
+  # Redis 7 — presence, photo buffer, rate limiting                     #
+  # ------------------------------------------------------------------ #
+  redis:
+    image: redis:7-alpine
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------ #
+  # Zookeeper — required by Kafka                                        #
+  # ------------------------------------------------------------------ #
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------ #
+  # Kafka — presence events, system notifications                       #
+  # ------------------------------------------------------------------ #
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 1
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------ #
+  # MinIO — object storage for profile photos                           #
+  # ------------------------------------------------------------------ #
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    env_file: .env
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ACCESS_KEY:-minioadmin}"
+      MINIO_ROOT_PASSWORD: "${MINIO_SECRET_KEY:-minioadmin}"
+    volumes:
+      - minio_data:/data
+    ports:
+      # MinIO console exposed for local admin (not behind nginx)
+      - "9001:9001"
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------ #
+  # coturn — TURN server for WebRTC NAT traversal fallback             #
+  # ------------------------------------------------------------------ #
+  coturn:
+    image: coturn/coturn:latest
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+    networks:
+      - internal
+    restart: unless-stopped

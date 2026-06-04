@@ -1,0 +1,109 @@
+export interface PublicUser {
+  id: string;
+  display_name: string;
+  avatar_url?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  is_guest: boolean;
+  created_at?: string | null;
+}
+
+export interface OnlineUser {
+  id: string;
+  display_name: string;
+  avatar_url?: string | null;
+  is_guest: boolean;
+}
+
+export interface FriendRequest {
+  id: string;
+  requester: PublicUser;
+  created_at: string;
+}
+
+export interface Friend {
+  user: PublicUser;
+  friendship_id: string;
+}
+
+export interface NotificationOut {
+  id: string;
+  type: string;
+  payload: Record<string, unknown>;
+  read: boolean;
+  created_at: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: 'bearer';
+  is_guest: boolean;
+  user: PublicUser;
+}
+
+export interface UpdateProfile {
+  display_name?: string;
+  bio?: string;
+  location?: string;
+  appear_online?: boolean;
+}
+
+export interface IceServer {
+  urls: string | string[];
+  username?: string;
+  credential?: string;
+}
+
+export interface RtcConfig {
+  ice_servers: IceServer[];
+}
+
+// WebSocket message shapes
+export interface WsPresenceSnapshot {
+  type: 'presence';
+  data: { event: 'snapshot'; users: OnlineUser[] };
+}
+export interface WsPresenceJoin {
+  type: 'presence';
+  data: { event: 'join'; user: OnlineUser };
+}
+export interface WsPresenceLeave {
+  type: 'presence';
+  data: { event: 'leave'; id: string };
+}
+export interface WsSignal {
+  type: 'signal';
+  from: string;
+  data: RTCSessionDescriptionInit | RTCIceCandidateInit;
+}
+export interface WsRelay {
+  type: 'relay';
+  from: string;
+  data: { text?: string; ts?: number; photo_token?: string };
+}
+export interface WsNotification {
+  type: 'notification';
+  data: NotificationOut;
+}
+export interface WsError {
+  type: 'error';
+  data: { message: string };
+}
+export interface WsPong {
+  type: 'pong';
+}
+
+export type WsMessage =
+  | WsPresenceSnapshot
+  | WsPresenceJoin
+  | WsPresenceLeave
+  | WsSignal
+  | WsRelay
+  | WsNotification
+  | WsError
+  | WsPong;
+
+export interface PhotoUploadResponse {
+  token: string;
+  expires_at: string;
+}
