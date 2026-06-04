@@ -23,16 +23,6 @@ if ! docker compose version >/dev/null 2>&1; then
   exit 1
 fi
 
-# Download recommended TLS parameters (referenced by nginx.ssl.conf).
-if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/ssl-dhparams.pem" ]; then
-  echo "### Downloading recommended TLS parameters ..."
-  mkdir -p "$data_path/conf"
-  curl -sSf https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/src/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf \
-    > "$data_path/conf/options-ssl-nginx.conf"
-  curl -sSf https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem \
-    > "$data_path/conf/ssl-dhparams.pem"
-fi
-
 # Create a throwaway self-signed cert so nginx can start and serve the challenge.
 echo "### Creating dummy certificate for '$cert_name' ..."
 mkdir -p "$data_path/conf/live/$cert_name"
