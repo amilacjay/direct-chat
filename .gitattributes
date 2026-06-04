@@ -1,0 +1,9 @@
+# Normalize text line endings in the repo (stored as LF).
+* text=auto
+
+# Files that MUST be LF even when checked out on Windows (run on Linux).
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.conf text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

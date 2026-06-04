@@ -25,6 +25,9 @@ e2e/.cache/
 client_secret_*.json
 *.apps.googleusercontent.com.json
 
+# Let's Encrypt certificates / private keys (generated on the server)
+/certbot/
+
 # OS / editor
 .DS_Store
 Thumbs.db
