@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import { useToast } from '../components/Toast';
+import type { NotificationOut } from '../lib/types';
 
 interface BlockedUser {
   id: string;
@@ -19,12 +20,40 @@ export const Settings: React.FC = () => {
   // Block list is local — API endpoint for listing blocks is not specified in contract
   const [blockedUsers] = useState<BlockedUser[]>([]);
   const [blockInput, setBlockInput] = useState('');
+  const [notifications, setNotifications] = useState<NotificationOut[]>([]);
 
   useEffect(() => {
     if (isGuest) {
       navigate('/app', { replace: true });
     }
   }, [isGuest, navigate]);
+
+  useEffect(() => {
+    if (isGuest) return;
+    api.get<NotificationOut[]>('/notifications').then(setNotifications).catch(() => {});
+  }, [isGuest]);
+
+  const handleRemoveNotification = async (id: string) => {
+    try {
+      await api.delete(`/notifications/${id}`);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    } catch {
+      toast('Failed to remove notification', 'error');
+    }
+  };
+
+  const handleClearNotifications = async () => {
+    try {
+      await api.delete('/notifications');
+      setNotifications([]);
+      toast('Notifications cleared', 'success');
+    } catch {
+      toast('Failed to clear notifications', 'error');
+    }
+  };
+
+  const formatNotifType = (type: string) =>
+    type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
   const handleToggleOnline = async () => {
     const next = !appearOnline;
@@ -86,6 +115,54 @@ export const Settings: React.FC = () => {
             />
           </button>
         </div>
+      </section>
+
+      {/* Notifications */}
+      <section className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-gray-800">Notifications</h2>
+          {notifications.length > 0 && (
+            <button
+              data-testid="clear-notifications"
+              onClick={handleClearNotifications}
+              className="text-xs text-red-500 hover:text-red-700 hover:underline"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+
+        {notifications.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">No notifications</p>
+        ) : (
+          <div className="space-y-2 max-h-72 overflow-y-auto">
+            {notifications.map((n) => (
+              <div
+                key={n.id}
+                className={`flex items-center justify-between gap-3 p-2 rounded-lg text-sm ${
+                  n.read ? 'bg-gray-50' : 'bg-blue-50'
+                }`}
+              >
+                <div className="min-w-0">
+                  <p className="text-gray-800 font-medium truncate">{formatNotifType(n.type)}</p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(n.created_at).toLocaleString()}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleRemoveNotification(n.id)}
+                  title="Remove"
+                  aria-label="Remove notification"
+                  className="flex-shrink-0 p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Block list */}

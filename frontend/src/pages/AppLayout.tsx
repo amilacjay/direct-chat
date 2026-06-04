@@ -83,9 +83,11 @@ export const AppLayout: React.FC = () => {
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       <NavBar
-        notifications={showNotifs ? notifications : []}
+        notifications={notifications}
         unreadCount={unreadCount}
+        notifMenuOpen={showNotifs}
         onBellClick={handleBellClick}
+        onCloseNotifs={() => setShowNotifs(false)}
       />
       <div className="flex flex-1 overflow-hidden">
         <OnlineUsers />

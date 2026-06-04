@@ -10,25 +10,37 @@ import type { NotificationOut } from '../lib/types';
 interface NavBarProps {
   notifications: NotificationOut[];
   unreadCount: number;
+  notifMenuOpen: boolean;
   onBellClick: () => void;
+  onCloseNotifs: () => void;
 }
 
-export const NavBar: React.FC<NavBarProps> = ({ notifications, unreadCount, onBellClick }) => {
+export const NavBar: React.FC<NavBarProps> = ({
+  notifications,
+  unreadCount,
+  notifMenuOpen,
+  onBellClick,
+  onCloseNotifs,
+}) => {
   const { user, isGuest, logout } = useAuthStore();
   const navigate = useNavigate();
   const [appearOnline, setAppearOnline] = useState(true);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setProfileMenuOpen(false);
       }
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        onCloseNotifs();
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  }, [onCloseNotifs]);
 
   const handleToggleOnline = async () => {
     if (isGuest) return;
@@ -83,51 +95,56 @@ export const NavBar: React.FC<NavBarProps> = ({ notifications, unreadCount, onBe
         </button>
       )}
 
-      {/* Notifications bell */}
-      <button
-        data-testid="nav-bell"
-        onClick={onBellClick}
-        className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
-        aria-label="Notifications"
-      >
-        <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-          />
-        </svg>
-        {unreadCount > 0 && (
-          <span
-            data-testid="notif-count"
-            className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium"
-          >
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
-      </button>
+      {/* Notifications bell + dropdown */}
+      <div ref={notifRef}>
+        <button
+          data-testid="nav-bell"
+          onClick={onBellClick}
+          className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          aria-label="Notifications"
+        >
+          <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+            />
+          </svg>
+          {unreadCount > 0 && (
+            <span
+              data-testid="notif-count"
+              className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium"
+            >
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </button>
 
-      {/* Notifications dropdown */}
-      {notifications.length > 0 && (
-        <div className="absolute top-14 right-16 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
-          <div className="p-3 border-b border-gray-100 text-sm font-semibold text-gray-700">
-            Notifications
+        {notifMenuOpen && (
+          <div className="absolute top-14 right-16 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+            <div className="p-3 border-b border-gray-100 text-sm font-semibold text-gray-700">
+              Notifications
+            </div>
+            <div className="max-h-72 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <p className="px-4 py-6 text-sm text-gray-400 text-center">No notifications</p>
+              ) : (
+                notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    className={`px-4 py-3 text-sm border-b border-gray-50 ${
+                      n.read ? 'text-gray-500' : 'text-gray-900 bg-blue-50'
+                    }`}
+                  >
+                    <span className="font-medium capitalize">{n.type.replace(/_/g, ' ')}</span>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-          <div className="max-h-72 overflow-y-auto">
-            {notifications.map((n) => (
-              <div
-                key={n.id}
-                className={`px-4 py-3 text-sm border-b border-gray-50 ${
-                  n.read ? 'text-gray-500' : 'text-gray-900 bg-blue-50'
-                }`}
-              >
-                <span className="font-medium capitalize">{n.type.replace(/_/g, ' ')}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Profile menu */}
       <div className="relative" ref={menuRef}>

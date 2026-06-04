@@ -1,7 +1,8 @@
-"""Notifications router: list and mark-all-read."""
+"""Notifications router: list, mark-all-read, delete, and clear."""
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -55,5 +56,45 @@ async def mark_all_read(
     notifications = result.scalars().all()
     for n in notifications:
         n.read = True
+    await db.commit()
+    return {"ok": True}
+
+
+@router.delete("")
+async def clear_notifications(
+    principal: Principal = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete all notifications for the current user."""
+    user_id = uuid.UUID(principal.id)
+    await db.execute(sa_delete(Notification).where(Notification.user_id == user_id))
+    await db.commit()
+    return {"ok": True}
+
+
+@router.delete("/{notification_id}")
+async def delete_notification(
+    notification_id: str,
+    principal: Principal = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a single notification owned by the current user."""
+    user_id = uuid.UUID(principal.id)
+    try:
+        nid = uuid.UUID(notification_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+
+    result = await db.execute(
+        select(Notification).where(
+            Notification.id == nid,
+            Notification.user_id == user_id,
+        )
+    )
+    notification = result.scalar_one_or_none()
+    if notification is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+
+    await db.delete(notification)
     await db.commit()
     return {"ok": True}
