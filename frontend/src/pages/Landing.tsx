@@ -12,7 +12,7 @@ const DEV_AUTH = import.meta.env.VITE_DEV_AUTH === 'true';
 const FEATURES = [
   {
     t: 'Peer-to-peer',
-    d: 'Encrypted WebRTC links your devices directly, with a secure relay only as fallback.',
+    d: 'WebRTC connects your devices directly — messages never touch our servers.',
     icon: (
       <path
         d="M10 14a3.5 3.5 0 0 0 5 0l2.5-2.5a3.5 3.5 0 0 0-5-5L11 8M14 10a3.5 3.5 0 0 0-5 0L6.5 12.5a3.5 3.5 0 0 0 5 5L13 16"
@@ -24,8 +24,8 @@ const FEATURES = [
     ),
   },
   {
-    t: 'Zero history',
-    d: 'Conversations live in memory. Refresh or leave and they vanish — nothing is logged.',
+    t: 'No message history',
+    d: 'Conversations exist only in memory. Close the chat and they\'re gone — nothing is logged.',
     icon: (
       <path
         d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Zm9.5 2.6a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2Z"
@@ -37,8 +37,8 @@ const FEATURES = [
     ),
   },
   {
-    t: 'No profiles',
-    d: 'Hop in as a guest. No phone number, no email, no identity to mine.',
+    t: 'Guest or account',
+    d: 'Jump in anonymously as a guest, or sign in to keep a profile. Your call.',
     icon: (
       <path
         d="M5.5 19.5V10a6.5 6.5 0 0 1 13 0v9.5l-2.2-1.6-2.2 1.6-2.1-1.6-2.1 1.6-2.1-1.6-1.9 1.6ZM9.5 10.5h.01M14.5 10.5h.01"
@@ -156,7 +156,7 @@ export const Landing: React.FC = () => {
               strokeLinejoin="round"
             />
           </svg>
-          NO ACCOUNT REQUIRED · NOTHING STORED
+          MESSAGES NEVER STORED · PEER-TO-PEER
         </span>
 
         <h1
@@ -172,8 +172,8 @@ export const Landing: React.FC = () => {
           className="mt-5 max-w-xl text-ink-2"
           style={{ fontSize: 'clamp(16px, 2.3vw, 20px)', lineHeight: 1.55, textWrap: 'pretty' }}
         >
-          Direct connects you peer-to-peer. Messages travel straight between devices — no history, no
-          profiles, no trace left on any server. Close the chat and it’s gone for good.
+          Direct connects you peer-to-peer. Messages travel straight between devices and leave
+          no trace on any server. Close the chat and it’s gone for good.
         </p>
 
         {/* Auth */}
@@ -289,7 +289,7 @@ export const Landing: React.FC = () => {
       </main>
 
       <footer className="mono relative z-10 px-6 pb-8 pt-2 text-center text-[11px] tracking-[0.06em] text-ink-4">
-        DIRECT · PEER-TO-PEER · NO DATA RETENTION
+        DIRECT · PEER-TO-PEER · NO MESSAGE HISTORY
       </footer>
     </div>
   );
