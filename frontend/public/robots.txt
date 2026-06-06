@@ -1,0 +1,10 @@
+# Direct — https://directchat.space
+# Allow search engines to crawl the public landing page.
+# Disallow the authenticated app routes (nothing useful for crawlers there).
+
+User-agent: *
+Allow: /$
+Disallow: /app
+Disallow: /login
+
+Sitemap: https://directchat.space/sitemap.xml

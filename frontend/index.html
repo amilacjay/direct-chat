@@ -3,11 +3,45 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Direct — peer-to-peer chat</title>
+
+    <!-- Primary SEO -->
+    <title>Direct — Free, Ad-Free Private Chat | No Message History</title>
+    <meta
+      name="description"
+      content="Direct is a free, ad-free chat app built for privacy. Talk to people peer-to-peer — messages are never stored, logged, or tracked. Chat as an anonymous guest or sign in. No ads, ever."
+    />
+    <meta
+      name="keywords"
+      content="free chat app, ad-free chat, private chat, anonymous chat, peer-to-peer chat, encrypted chat, no ads chat app, privacy messaging, chat with strangers, meet people online, secure chat"
+    />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://directchat.space/" />
+
+    <!-- Open Graph (Facebook, LinkedIn, WhatsApp, etc.) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Direct" />
+    <meta property="og:title" content="Direct — Free, Ad-Free Private Chat" />
+    <meta
+      property="og:description"
+      content="A free, ad-free chat app built for privacy. Messages travel peer-to-peer and are never stored or tracked. Chat anonymously as a guest or sign in."
+    />
+    <meta property="og:url" content="https://directchat.space/" />
+    <meta property="og:image" content="https://directchat.space/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter / X Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Direct — Free, Ad-Free Private Chat" />
+    <meta
+      name="twitter:description"
+      content="A free, ad-free chat app built for privacy. Messages travel peer-to-peer and are never stored or tracked."
+    />
+    <meta name="twitter:image" content="https://directchat.space/og-image.png" />
 
     <!-- PWA -->
     <meta name="application-name" content="Direct" />
-    <meta name="description" content="Peer-to-peer chat — messages never stored on servers" />
     <meta name="theme-color" content="#8B5CF6" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -16,6 +50,87 @@
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+
+    <!-- Structured data: helps Google understand the app -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://directchat.space/#website",
+            "url": "https://directchat.space/",
+            "name": "Direct",
+            "description": "Free, ad-free, privacy-first chat. Peer-to-peer messages that are never stored or tracked."
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "Direct",
+            "url": "https://directchat.space/",
+            "applicationCategory": "CommunicationApplication",
+            "operatingSystem": "Web, iOS, Android",
+            "description": "Direct is a free, ad-free chat app built for privacy. Messages travel peer-to-peer between devices and are never stored, logged, or tracked. Chat anonymously as a guest or sign in to keep a profile.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "featureList": [
+              "Free and ad-free",
+              "Peer-to-peer messaging",
+              "No message history stored on servers",
+              "Anonymous guest access",
+              "Privacy-first"
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is Direct really free and ad-free?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Direct is completely free to use and shows no ads — ever. There are no paywalls, no premium tiers, and no trackers selling your attention."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are my messages private? Are they stored anywhere?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Conversations are peer-to-peer over WebRTC, travelling directly between devices. Messages are never stored on our servers, never logged, and disappear the moment you close the chat."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I chat anonymously without an account?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Absolutely. Continue as a guest to chat anonymously with no email, no phone number, and no profile required. You can sign in later if you want to keep a profile."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I meet and talk to new people on Direct?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — see who is online and start a private, peer-to-peer conversation. It is a simple, no-pressure way to meet and chat with new people without ads or tracking."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does Direct work on mobile?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Direct works in any modern browser and installs as a PWA on iOS and Android, so it feels like a native app with no app store download."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
 
     <!-- Set theme + accent hue before paint to avoid a flash -->
     <script>

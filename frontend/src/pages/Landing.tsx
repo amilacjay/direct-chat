@@ -51,6 +51,29 @@ const FEATURES = [
   },
 ];
 
+const FAQS = [
+  {
+    q: 'Is Direct really free and ad-free?',
+    a: 'Yes. Direct is completely free to use and shows no ads — ever. There are no paywalls, no premium tiers, and no trackers selling your attention.',
+  },
+  {
+    q: 'Are my messages private? Are they stored anywhere?',
+    a: 'Conversations are peer-to-peer over WebRTC, travelling directly between devices. Messages are never stored on our servers, never logged, and disappear the moment you close the chat.',
+  },
+  {
+    q: 'Can I chat anonymously without an account?',
+    a: 'Absolutely. Continue as a guest to chat anonymously with no email, no phone number, and no profile required. You can sign in later if you want to keep a profile.',
+  },
+  {
+    q: 'Can I meet and talk to new people on Direct?',
+    a: 'Yes — see who is online and start a private, peer-to-peer conversation. It is a simple, no-pressure way to meet and chat with new people without ads or tracking.',
+  },
+  {
+    q: 'Does Direct work on mobile?',
+    a: 'Yes. Direct works in any modern browser and installs as a PWA on iOS and Android, so it feels like a native app with no app store download.',
+  },
+];
+
 export const Landing: React.FC = () => {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
@@ -172,8 +195,9 @@ export const Landing: React.FC = () => {
           className="mt-5 max-w-xl text-ink-2"
           style={{ fontSize: 'clamp(16px, 2.3vw, 20px)', lineHeight: 1.55, textWrap: 'pretty' }}
         >
-          Direct connects you peer-to-peer. Messages travel straight between devices and leave
-          no trace on any server. Close the chat and it’s gone for good.
+          Direct is a free, ad-free chat app built for privacy. Messages travel peer-to-peer,
+          straight between devices, and leave no trace on any server. Close the chat and it’s
+          gone for good.
         </p>
 
         {/* Auth */}
@@ -243,6 +267,28 @@ export const Landing: React.FC = () => {
             </div>
           ))}
         </div>
+
+        {/* FAQ — visible content that mirrors the FAQPage structured data in index.html */}
+        <section className="mt-20 w-full max-w-2xl text-left">
+          <h2 className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+            Frequently asked questions
+          </h2>
+          <div className="mt-6 space-y-3">
+            {FAQS.map((f) => (
+              <details key={f.q} className="card group">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[15.5px] font-semibold tracking-tight text-ink">
+                  {f.q}
+                  <span className="text-ink-4 transition-transform group-open:rotate-45">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
+                    </svg>
+                  </span>
+                </summary>
+                <p className="mt-3 text-[14px] leading-relaxed text-ink-3">{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
 
         {/* Dev login */}
         {DEV_AUTH && (
