@@ -167,7 +167,26 @@ export const Landing: React.FC = () => {
           </span>
           <span className="font-display text-xl font-semibold tracking-tight">Direct</span>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-2.5">
+          {DONATE_ENABLED && (
+            <button
+              onClick={() => setShowDonate(true)}
+              aria-label="Support Direct"
+              title="Support Direct"
+              className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-full border border-line bg-surface2 text-accent transition-colors hover:bg-surface-hi"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M12 20.5S3.5 14.8 3.5 9.3A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 8.5 1.7c0 5.5-8.5 11.2-8.5 11.2Z"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          )}
+          <ThemeToggle />
+        </div>
       </header>
 
       {/* Hero */}
@@ -337,23 +356,8 @@ export const Landing: React.FC = () => {
         )}
       </main>
 
-      <footer className="relative z-10 flex flex-col items-center gap-4 px-6 pb-8 pt-2">
-        {DONATE_ENABLED && (
-          <button onClick={() => setShowDonate(true)} className="btn-ghost h-10 px-5 text-[13.5px]">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M12 20.5S3.5 14.8 3.5 9.3A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 8.5 1.7c0 5.5-8.5 11.2-8.5 11.2Z"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinejoin="round"
-              />
-            </svg>
-            Support Direct
-          </button>
-        )}
-        <p className="mono text-center text-[11px] tracking-[0.06em] text-ink-4">
-          DIRECT · PEER-TO-PEER · NO MESSAGE HISTORY
-        </p>
+      <footer className="mono relative z-10 px-6 pb-8 pt-2 text-center text-[11px] tracking-[0.06em] text-ink-4">
+        DIRECT · PEER-TO-PEER · NO MESSAGE HISTORY
       </footer>
 
       {showDonate && <DonateModal onClose={() => setShowDonate(false)} />}
