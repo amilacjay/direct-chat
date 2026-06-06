@@ -6,7 +6,21 @@ import { useToast } from '../components/Toast';
 import { useTheme } from '../hooks/useTheme';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { ConnPill } from '../components/ConnPill';
-import type { NotificationOut } from '../lib/types';
+import { applyAccentHue, DEFAULT_HUE } from '../hooks/useAccentColor';
+import type { NotificationOut, PublicUser } from '../lib/types';
+
+const ACCENT_PRESETS = [
+  { hue: 285, label: 'Purple' },
+  { hue: 260, label: 'Violet' },
+  { hue: 230, label: 'Blue' },
+  { hue: 200, label: 'Cyan' },
+  { hue: 165, label: 'Teal' },
+  { hue: 145, label: 'Green' },
+  { hue: 70,  label: 'Yellow' },
+  { hue: 45,  label: 'Orange' },
+  { hue: 15,  label: 'Red' },
+  { hue: 340, label: 'Pink' },
+];
 
 interface BlockedUser {
   id: string;
@@ -14,13 +28,15 @@ interface BlockedUser {
 }
 
 export const Settings: React.FC = () => {
-  const { isGuest } = useAuthStore();
+  const { isGuest, user, setUser } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { theme } = useTheme();
 
   const [appearOnline, setAppearOnline] = useState(true);
   const [savingOnline, setSavingOnline] = useState(false);
+  const [accentHue, setAccentHue] = useState<number>(user?.accent_hue ?? DEFAULT_HUE);
+  const [savingAccent, setSavingAccent] = useState(false);
   const [blockedUsers] = useState<BlockedUser[]>([]);
   const [blockInput, setBlockInput] = useState('');
   const [notifications, setNotifications] = useState<NotificationOut[]>([]);
@@ -72,6 +88,20 @@ export const Settings: React.FC = () => {
     }
   };
 
+  const handleAccentChange = async (hue: number) => {
+    setAccentHue(hue);
+    applyAccentHue(hue);
+    setSavingAccent(true);
+    try {
+      const updated = await api.patch<PublicUser>('/users/me', { accent_hue: hue });
+      setUser(updated);
+    } catch {
+      toast('Failed to save accent colour', 'error');
+    } finally {
+      setSavingAccent(false);
+    }
+  };
+
   const handleBlock = async (e: React.FormEvent) => {
     e.preventDefault();
     const uid = blockInput.trim();
@@ -113,6 +143,35 @@ export const Settings: React.FC = () => {
             <p className="text-xs text-ink-3">{theme === 'dark' ? 'Dark — easy on the eyes' : 'Light — clean & bright'}</p>
           </div>
           <ThemeToggle />
+        </div>
+        <div className="mt-4 border-t border-line pt-4">
+          <div className="mb-2.5 flex items-center justify-between">
+            <p className="text-sm font-medium text-ink">Accent colour</p>
+            {savingAccent && <span className="text-xs text-ink-4">Saving…</span>}
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            {ACCENT_PRESETS.map(({ hue, label }) => {
+              const selected = accentHue === hue;
+              return (
+                <button
+                  key={hue}
+                  type="button"
+                  title={label}
+                  aria-label={label}
+                  onClick={() => handleAccentChange(hue)}
+                  className="relative h-8 w-8 flex-shrink-0 rounded-full transition-transform hover:scale-110 focus:outline-none"
+                  style={{ background: `oklch(0.66 0.19 ${hue})` }}
+                >
+                  {selected && (
+                    <span
+                      className="absolute inset-0 rounded-full"
+                      style={{ boxShadow: `0 0 0 2px var(--bg), 0 0 0 4px oklch(0.66 0.19 ${hue})` }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </section>
 

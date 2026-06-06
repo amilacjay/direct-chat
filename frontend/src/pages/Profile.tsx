@@ -4,7 +4,6 @@ import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import { Avatar } from '../components/Avatar';
 import { useToast } from '../components/Toast';
-import { applyAccentHue, DEFAULT_HUE } from '../hooks/useAccentColor';
 import type { PublicUser } from '../lib/types';
 
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024; // 2 MB
@@ -15,19 +14,6 @@ const GENDER_OPTIONS = [
   { value: 'female', label: 'Female' },
   { value: 'nonbinary', label: 'Non-binary' },
   { value: 'other', label: 'Other' },
-];
-
-const ACCENT_PRESETS = [
-  { hue: 285, label: 'Purple' },
-  { hue: 260, label: 'Violet' },
-  { hue: 230, label: 'Blue' },
-  { hue: 200, label: 'Cyan' },
-  { hue: 165, label: 'Teal' },
-  { hue: 145, label: 'Green' },
-  { hue: 70,  label: 'Yellow' },
-  { hue: 45,  label: 'Orange' },
-  { hue: 15,  label: 'Red' },
-  { hue: 340, label: 'Pink' },
 ];
 
 export const Profile: React.FC = () => {
@@ -43,7 +29,6 @@ export const Profile: React.FC = () => {
   const [age, setAge] = useState<string>(user?.age != null ? String(user.age) : '');
   const [showGender, setShowGender] = useState(user?.show_gender ?? true);
   const [showAge, setShowAge] = useState(user?.show_age ?? true);
-  const [accentHue, setAccentHue] = useState<number>(user?.accent_hue ?? DEFAULT_HUE);
   const [saving, setSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState('');
@@ -63,14 +48,8 @@ export const Profile: React.FC = () => {
       setAge(user.age != null ? String(user.age) : '');
       setShowGender(user.show_gender ?? true);
       setShowAge(user.show_age ?? true);
-      setAccentHue(user.accent_hue ?? DEFAULT_HUE);
     }
   }, [user]);
-
-  const handleHueChange = (hue: number) => {
-    setAccentHue(hue);
-    applyAccentHue(hue); // live preview
-  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +69,6 @@ export const Profile: React.FC = () => {
         age: ageNum,
         show_gender: showGender,
         show_age: showAge,
-        accent_hue: accentHue,
       });
       setUser(updated);
       toast('Profile saved!', 'success');
@@ -196,34 +174,6 @@ export const Profile: React.FC = () => {
             Change avatar
           </button>
           {avatarError && <p className="mt-1 text-xs text-warn">{avatarError}</p>}
-        </div>
-      </div>
-
-      {/* Accent colour */}
-      <div className="mb-6">
-        <p className="mb-2 text-sm font-medium text-ink-2">Accent colour</p>
-        <div className="flex flex-wrap gap-2.5">
-          {ACCENT_PRESETS.map(({ hue, label }) => {
-            const selected = accentHue === hue;
-            return (
-              <button
-                key={hue}
-                type="button"
-                title={label}
-                aria-label={label}
-                onClick={() => handleHueChange(hue)}
-                className="relative h-8 w-8 flex-shrink-0 rounded-full transition-transform hover:scale-110 focus:outline-none"
-                style={{ background: `oklch(0.66 0.19 ${hue})` }}
-              >
-                {selected && (
-                  <span
-                    className="absolute inset-0 rounded-full"
-                    style={{ boxShadow: `0 0 0 2px var(--bg), 0 0 0 4px oklch(0.66 0.19 ${hue})` }}
-                  />
-                )}
-              </button>
-            );
-          })}
         </div>
       </div>
 
