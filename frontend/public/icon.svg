@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#1A1820"/>
+  <!-- Accent glow -->
+  <circle cx="256" cy="256" r="200" fill="url(#glow)" opacity="0.18"/>
+  <!-- Logo mark: left node (filled) -->
+  <circle cx="176" cy="256" r="52" fill="#A78BFA"/>
+  <!-- Connector line -->
+  <line x1="176" y1="256" x2="336" y2="256" stroke="#A78BFA" stroke-width="24" stroke-linecap="round" opacity="0.85"/>
+  <!-- Right node (outline) -->
+  <circle cx="336" cy="256" r="52" fill="none" stroke="#A78BFA" stroke-width="24"/>
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#1A1820"/>
+    </radialGradient>
+  </defs>
+</svg>
