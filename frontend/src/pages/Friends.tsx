@@ -97,7 +97,7 @@ export const Friends: React.FC = () => {
         <h1 className="font-display text-lg font-semibold tracking-tight text-ink">Friends</h1>
       </div>
     <div className="flex-1 overflow-y-auto">
-    <div className="mx-auto max-w-lg p-6">
+    <div className="mx-auto max-w-lg p-6" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
       <h1 className="font-display mb-4 hidden text-2xl font-semibold tracking-tight text-ink md:block">Friends</h1>
 
       {/* Tabs */}

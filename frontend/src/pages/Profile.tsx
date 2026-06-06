@@ -139,7 +139,7 @@ export const Profile: React.FC = () => {
         <h1 className="font-display text-lg font-semibold tracking-tight text-ink">Profile</h1>
       </div>
     <div className="flex-1 overflow-y-auto">
-    <div className="mx-auto max-w-lg p-6">
+    <div className="mx-auto max-w-lg p-6" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
       <h1 className="font-display mb-6 hidden text-2xl font-semibold tracking-tight text-ink md:block">Profile</h1>
 
       {/* Avatar */}

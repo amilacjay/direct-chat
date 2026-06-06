@@ -134,7 +134,7 @@ export const Landing: React.FC = () => {
       </div>
 
       {/* Top bar */}
-      <header className="relative z-10 mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
+      <header className="relative z-10 mx-auto flex max-w-5xl items-center justify-between px-6 py-5" style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-2.5 text-ink">
           <span className="text-accent">
             <Logo size={26} live />

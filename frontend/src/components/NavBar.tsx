@@ -64,7 +64,15 @@ export const NavBar: React.FC<NavBarProps> = ({
   };
 
   return (
-    <header className="relative z-20 flex h-14 flex-shrink-0 items-center gap-3 border-b border-line bg-bg" style={{ paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))' }}>
+    <header
+      className="z-20 flex-shrink-0 border-b border-line bg-bg"
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right))',
+      }}
+    >
+    <div className="relative flex h-14 items-center gap-3">
       {/* Brand */}
       <Link to="/app" className="mr-1 flex items-center gap-2 text-ink">
         <span className="text-accent">
@@ -105,7 +113,7 @@ export const NavBar: React.FC<NavBarProps> = ({
       )}
 
       {/* Notifications */}
-      <div ref={notifRef}>
+      <div ref={notifRef} className="relative">
         <button
           data-testid="nav-bell"
           onClick={onBellClick}
@@ -133,7 +141,7 @@ export const NavBar: React.FC<NavBarProps> = ({
         </button>
 
         {notifMenuOpen && (
-          <div className="absolute right-2 top-14 w-80 max-w-[calc(100vw-1rem)] overflow-hidden rounded-2xl border border-line bg-surface shadow-float">
+          <div className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-1rem)] overflow-hidden rounded-2xl border border-line bg-surface shadow-float">
             <div className="border-b border-line p-3 text-sm font-semibold text-ink-2">Notifications</div>
             <div className="max-h-72 overflow-y-auto">
               {notifications.length === 0 ? (
@@ -206,6 +214,7 @@ export const NavBar: React.FC<NavBarProps> = ({
           </div>
         )}
       </div>
+    </div>
     </header>
   );
 };
