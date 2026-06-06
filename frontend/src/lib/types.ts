@@ -10,6 +10,7 @@ export interface PublicUser {
   show_age?: boolean;
   is_guest: boolean;
   created_at?: string | null;
+  accent_hue?: number | null;
 }
 
 export interface OnlineUser {
@@ -56,6 +57,7 @@ export interface UpdateProfile {
   show_gender?: boolean;
   show_age?: boolean;
   appear_online?: boolean;
+  accent_hue?: number | null;
 }
 
 export interface IceServer {

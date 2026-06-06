@@ -47,6 +47,7 @@ class User(Base):
     show_gender: Mapped[bool] = mapped_column(Boolean, default=True, server_default='true')
     show_age: Mapped[bool] = mapped_column(Boolean, default=True, server_default='true')
     appear_online: Mapped[bool] = mapped_column(Boolean, default=True)
+    accent_hue: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

@@ -41,6 +41,7 @@ class PublicUser(BaseModel):
     show_age: bool = True
     is_guest: bool = False
     created_at: Optional[datetime] = None
+    accent_hue: Optional[int] = None
 
 
 VALID_GENDERS = {"male", "female", "nonbinary", "other"}
@@ -55,6 +56,7 @@ class UpdateProfile(BaseModel):
     show_gender: Optional[bool] = None
     show_age: Optional[bool] = None
     appear_online: Optional[bool] = None
+    accent_hue: Optional[int] = Field(default=None, ge=0, le=360)
 
 
 class OnlineUser(BaseModel):

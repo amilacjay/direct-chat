@@ -7,6 +7,7 @@ import { api } from '../lib/api';
 import { NavBar } from '../components/NavBar';
 import { OnlineUsers } from './OnlineUsers';
 import { useIncomingMessages } from '../hooks/useIncomingMessages';
+import { useAccentColor } from '../hooks/useAccentColor';
 import type { NotificationOut, WsNotification, WsSignal } from '../lib/types';
 
 export const AppLayout: React.FC = () => {
@@ -25,6 +26,7 @@ export const AppLayout: React.FC = () => {
   const onHome = location.pathname === '/app' || location.pathname === '/app/';
 
   useIncomingMessages();
+  useAccentColor();
 
   useEffect(() => {
     if (!token) {

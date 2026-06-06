@@ -52,6 +52,7 @@ def _user_to_public(user: User, for_self: bool = False) -> PublicUser:
         show_age=user.show_age,
         is_guest=False,
         created_at=user.created_at,
+        accent_hue=user.accent_hue if for_self else None,
     )
 
 
@@ -128,6 +129,9 @@ async def update_me(
 
     if body.appear_online is not None:
         user.appear_online = body.appear_online
+
+    if 'accent_hue' in body.model_fields_set:
+        user.accent_hue = body.accent_hue
 
     await db.commit()
     await db.refresh(user)

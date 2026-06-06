@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Direct — chat and forget the past</title>
 
-    <!-- Set theme before paint to avoid a flash of the wrong theme -->
+    <!-- Set theme + accent hue before paint to avoid a flash -->
     <script>
       (function () {
         try {
@@ -16,6 +16,12 @@
         } catch (e) {
           document.documentElement.setAttribute('data-theme', 'dark');
         }
+        try {
+          var u = JSON.parse(localStorage.getItem('auth_user') || 'null');
+          if (u && u.accent_hue != null) {
+            document.documentElement.style.setProperty('--accent-h', String(u.accent_hue));
+          }
+        } catch (e) {}
       })();
     </script>
 
