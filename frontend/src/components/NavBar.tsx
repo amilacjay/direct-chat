@@ -172,27 +172,27 @@ export const NavBar: React.FC<NavBarProps> = ({
         </button>
 
         {profileMenuOpen && (
-          <div className="absolute right-0 top-full mt-1 w-44 overflow-hidden rounded-2xl border border-line bg-surface py-1 text-sm shadow-float">
+          <div className="absolute right-0 top-full mt-1 w-52 overflow-hidden rounded-2xl border border-line bg-surface py-1 text-sm shadow-float">
             {!isGuest && (
               <>
                 <Link
                   to="/app/profile"
                   onClick={() => setProfileMenuOpen(false)}
-                  className="block px-4 py-2 text-ink-2 hover:bg-surface2"
+                  className="block px-4 py-3 text-ink-2 hover:bg-surface2"
                 >
                   Profile
                 </Link>
                 <Link
                   to="/app/friends"
                   onClick={() => setProfileMenuOpen(false)}
-                  className="block px-4 py-2 text-ink-2 hover:bg-surface2"
+                  className="block px-4 py-3 text-ink-2 hover:bg-surface2"
                 >
                   Friends
                 </Link>
                 <Link
                   to="/app/settings"
                   onClick={() => setProfileMenuOpen(false)}
-                  className="block px-4 py-2 text-ink-2 hover:bg-surface2"
+                  className="block px-4 py-3 text-ink-2 hover:bg-surface2"
                 >
                   Settings
                 </Link>
@@ -202,7 +202,7 @@ export const NavBar: React.FC<NavBarProps> = ({
             <button
               data-testid="logout-btn"
               onClick={handleLogout}
-              className="block w-full px-4 py-2 text-left text-warn hover:bg-surface2"
+              className="block w-full px-4 py-3 text-left text-warn hover:bg-surface2"
             >
               Log out
             </button>

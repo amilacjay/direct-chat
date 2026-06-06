@@ -19,8 +19,10 @@ export const AppLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const wsConnected = useRef(false);
 
-  // On mobile we show ONE pane at a time: the people list, or the open chat.
-  const onChat = /^\/app\/chat\//.test(location.pathname);
+  // On mobile show ONE pane at a time.
+  // Sidebar (people list) only when at the root /app home. Any sub-route
+  // (chat, profile, friends, settings) gets the full-width main pane.
+  const onHome = location.pathname === '/app' || location.pathname === '/app/';
 
   useIncomingMessages();
 
@@ -91,12 +93,12 @@ export const AppLayout: React.FC = () => {
         onCloseNotifs={() => setShowNotifs(false)}
       />
       <div className="flex flex-1 overflow-hidden">
-        {/* People list — full width on mobile (hidden while a chat is open), fixed rail on desktop */}
-        <div className={`${onChat ? 'hidden md:flex' : 'flex'} w-full md:w-auto`}>
+        {/* People list — full width on mobile only on home; hidden on sub-routes */}
+        <div className={`${onHome ? 'flex' : 'hidden md:flex'} w-full md:w-auto`}>
           <OnlineUsers collapsed={!sidebarOpen} onToggle={() => setSidebarOpen((v) => !v)} />
         </div>
-        {/* Chat / welcome pane — hidden on mobile until a chat is open */}
-        <main className={`${onChat ? 'block' : 'hidden md:block'} flex-1 overflow-hidden`}>
+        {/* Main pane — hidden on mobile when at home, visible on any sub-route */}
+        <main className={`${onHome ? 'hidden md:block' : 'block'} flex-1 overflow-hidden`}>
           <Outlet />
         </main>
       </div>

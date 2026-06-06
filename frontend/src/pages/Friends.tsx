@@ -82,8 +82,23 @@ export const Friends: React.FC = () => {
     }`;
 
   return (
-    <div className="mx-auto max-w-lg overflow-y-auto p-6">
-      <h1 className="font-display mb-4 text-2xl font-semibold tracking-tight text-ink">Friends</h1>
+    <div className="flex h-full flex-col overflow-hidden bg-bg">
+      {/* Mobile header */}
+      <div className="flex flex-shrink-0 items-center gap-1 border-b border-line px-2 py-2 md:hidden">
+        <button
+          onClick={() => navigate('/app')}
+          aria-label="Back"
+          className="grid h-9 w-9 place-items-center rounded-xl text-ink-3 hover:bg-surface2"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M14.5 5.5 8 12l6.5 6.5" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <h1 className="font-display text-lg font-semibold tracking-tight text-ink">Friends</h1>
+      </div>
+    <div className="flex-1 overflow-y-auto">
+    <div className="mx-auto max-w-lg p-6">
+      <h1 className="font-display mb-4 hidden text-2xl font-semibold tracking-tight text-ink md:block">Friends</h1>
 
       {/* Tabs */}
       <div className="mb-4 flex border-b border-line">
@@ -170,6 +185,8 @@ export const Friends: React.FC = () => {
           ))}
         </div>
       )}
+    </div>
+    </div>
     </div>
   );
 };
