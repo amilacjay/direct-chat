@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { wsClient } from '../lib/websocket';
 import { peerManager } from '../lib/webrtc';
@@ -7,23 +7,21 @@ import { blobToDataUrl } from '../lib/media';
 import { useAuthStore } from '../store/auth';
 import { useChatStore } from '../store/chat';
 import { Avatar } from '../components/Avatar';
+import { ConnPill, type ConnState } from '../components/ConnPill';
 import { GuestOnlyDisabled } from '../components/GuestOnlyDisabled';
 import type { ChatMessage } from '../store/chat';
 import type { PublicUser } from '../lib/types';
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5 MB
 
-// Stable empty reference so the Zustand selector never returns a fresh array
-// for an empty conversation (which would trigger an infinite render loop).
+// Stable empty reference so the Zustand selector never returns a fresh array.
 const NO_MESSAGES: ChatMessage[] = [];
 
 export const Chat: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
+  const navigate = useNavigate();
   const { isGuest } = useAuthStore();
 
-  // Messages are kept in the persisted global store so they survive navigating
-  // between chats and page reloads. Inbound messages are ingested globally
-  // (see useIncomingMessages); this component only renders + sends.
   const messages = useChatStore((s) => (userId ? s.conversations[userId] : undefined)) ?? NO_MESSAGES;
   const addMessage = useChatStore((s) => s.addMessage);
   const setActivePeer = useChatStore((s) => s.setActivePeer);
@@ -34,16 +32,36 @@ export const Chat: React.FC = () => {
   const [webrtcFailed, setWebrtcFailed] = useState(false);
   const [photoError, setPhotoError] = useState('');
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const offerStarted = useRef(false);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // --- Robust auto-scroll to bottom (no scrollIntoView): pin on content growth. ---
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const jump = () => {
+      el.scrollTop = el.scrollHeight;
+    };
+    jump();
+    const ro = new ResizeObserver(jump);
+    if (innerRef.current) ro.observe(innerRef.current);
+    let n = 0;
+    const iv = window.setInterval(() => {
+      jump();
+      if (++n > 15) window.clearInterval(iv);
+    }, 50);
+    if (document.fonts?.ready) document.fonts.ready.then(jump).catch(() => {});
+    return () => {
+      ro.disconnect();
+      window.clearInterval(iv);
+    };
+  }, [userId]);
 
   useEffect(() => {
-    scrollToBottom();
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   // Fetch peer user info
@@ -52,8 +70,7 @@ export const Chat: React.FC = () => {
     api.get<PublicUser>(`/users/${userId}`).then(setPeer).catch(() => {});
   }, [userId]);
 
-  // Mark this conversation active (suppresses its notifications + clears unread)
-  // while it's on screen.
+  // Mark this conversation active while on screen.
   useEffect(() => {
     if (!userId) return;
     setActivePeer(userId);
@@ -75,7 +92,7 @@ export const Chat: React.FC = () => {
     };
   }, [userId]);
 
-  // WebRTC connection status (message ingestion is handled globally).
+  // WebRTC connection status
   useEffect(() => {
     if (!userId) return;
 
@@ -85,7 +102,6 @@ export const Chat: React.FC = () => {
         setWebrtcFailed(false);
       }
     };
-
     const handleFailed = ({ peerId }: { peerId: string }) => {
       if (peerId === userId) {
         setWebrtcFailed(true);
@@ -95,7 +111,6 @@ export const Chat: React.FC = () => {
 
     peerManager.on('open', handleOpen);
     peerManager.on('failed', handleFailed);
-
     return () => {
       peerManager.off('open', handleOpen);
       peerManager.off('failed', handleFailed);
@@ -172,7 +187,6 @@ export const Chat: React.FC = () => {
         wsClient.send({ type: 'relay', to: userId, data: photoData });
       }
 
-      // Show preview to sender (data URL so it persists across navigation/reload)
       const previewUrl = await blobToDataUrl(file);
       addMessage(userId, { photoUrl: previewUrl, ts: Date.now(), fromMe: true, relayed: !webrtcOpen, delivered: true });
     } catch {
@@ -182,116 +196,130 @@ export const Chat: React.FC = () => {
     e.target.value = '';
   };
 
-  const formatTime = (ts: number) => {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  const formatTime = (ts: number) =>
+    new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   if (!userId) return null;
 
+  const connState: ConnState = webrtcOpen ? 'p2p' : webrtcFailed ? 'relay' : 'connecting';
+
   return (
-    <div className="flex flex-col h-full bg-gray-50">
-      {/* Chat Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 flex-shrink-0">
+    <div className="flex h-full flex-col bg-bg">
+      {/* Header */}
+      <header
+        className="z-10 flex flex-shrink-0 items-center gap-3 border-b border-line px-4 py-3"
+        style={{ background: 'color-mix(in oklch, var(--bg) 80%, transparent)', backdropFilter: 'blur(12px)' }}
+      >
+        <button
+          onClick={() => navigate('/app')}
+          aria-label="Back"
+          className="-ml-2 grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl text-ink-3 hover:bg-surface2 md:hidden"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M14.5 5.5 8 12l6.5 6.5" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+
         {peer ? (
           <>
-            <div className="relative">
-              <Avatar src={peer.avatar_url} name={peer.display_name} size="sm" />
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
+            <div className="relative flex-shrink-0">
+              <Avatar src={peer.avatar_url} name={peer.display_name} size="md" />
+              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-[2.5px] border-bg" style={{ background: 'var(--good)' }} />
             </div>
-            <div>
-              <p className="font-semibold text-sm text-gray-900">{peer.display_name}</p>
-              <p className="text-xs text-gray-400">
-                {webrtcOpen ? (
-                  <span className="text-green-600">P2P connected</span>
-                ) : webrtcFailed ? (
-                  <span className="text-orange-500">Relayed via server</span>
-                ) : (
-                  <span className="text-gray-400">Connecting…</span>
-                )}
-              </p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[15.5px] font-semibold tracking-tight text-ink">{peer.display_name}</p>
+              <p className="text-xs text-good">{webrtcOpen ? 'online' : webrtcFailed ? 'online' : 'connecting…'}</p>
             </div>
           </>
         ) : (
-          <div className="w-32 h-4 bg-gray-200 animate-pulse rounded" />
+          <div className="h-4 w-32 animate-pulse rounded bg-surface2" />
         )}
-      </div>
+
+        <ConnPill state={connState} />
+      </header>
 
       {/* Messages */}
-      <div
-        data-testid="chat-messages"
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
-      >
-        {messages.length === 0 && (
-          <div className="text-center text-sm text-gray-400 mt-8">
-            <p>Say hello!</p>
-            <p className="text-xs mt-1">
-              {webrtcOpen ? 'Using P2P connection' : 'Messages will be relayed via server'}
-            </p>
+      <div ref={scrollRef} data-testid="chat-messages" className="flex-1 overflow-y-auto px-[clamp(14px,4vw,40px)] py-4">
+        <div ref={innerRef} className="flex min-h-full flex-col justify-end gap-2">
+          {/* Ephemeral banner */}
+          <div className="mono mx-auto mb-3 inline-flex items-center gap-1.5 self-center rounded-full border border-dashed border-lineHi bg-surface px-3 py-1.5 text-[10.5px] tracking-wide text-ink-3">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Zm9.5 2.6a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2Z" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Nothing here is saved. Leave and it’s gone.
           </div>
-        )}
 
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            data-testid="message"
-            className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-xs lg:max-w-md rounded-2xl px-3 py-2 ${
-                msg.fromMe
-                  ? 'bg-blue-600 text-white rounded-br-sm'
-                  : 'bg-white text-gray-900 border border-gray-200 rounded-bl-sm'
-              }`}
-            >
-              {msg.photoUrl ? (
-                <img
-                  src={msg.photoUrl}
-                  alt="Shared photo"
-                  className="max-w-full rounded-lg max-h-64 object-cover"
-                />
-              ) : (
-                <p className="text-sm whitespace-pre-wrap break-words">{msg.text}</p>
-              )}
-              <div
-                className={`flex items-center gap-1 mt-1 text-xs ${
-                  msg.fromMe ? 'text-blue-200 justify-end' : 'text-gray-400'
-                }`}
-              >
-                <span>{formatTime(msg.ts)}</span>
-                {msg.relayed && (
-                  <span className={`text-xs px-1 rounded ${msg.fromMe ? 'bg-blue-700' : 'bg-gray-100 text-gray-400'}`}>
-                    relayed
-                  </span>
-                )}
-                {msg.fromMe && msg.delivered && <span>✓</span>}
-              </div>
+          {messages.length === 0 && (
+            <div className="mt-8 text-center text-sm text-ink-4">
+              <p>Say hello!</p>
+              <p className="mt-1 text-xs">{webrtcOpen ? 'Using P2P connection' : 'Messages will be relayed via server'}</p>
             </div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
+          )}
+
+          {messages.map((msg, i) => {
+            const next = messages[i + 1];
+            const showTail = !next || next.fromMe !== msg.fromMe;
+            return (
+              <div
+                key={msg.id}
+                data-testid="message"
+                className={`flex animate-msgIn ${msg.fromMe ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className="max-w-[min(76%,460px)] break-words text-[15px] leading-snug shadow-soft"
+                  style={{
+                    padding: msg.photoUrl ? 5 : '10px 14px',
+                    borderRadius: 22,
+                    borderBottomRightRadius: msg.fromMe && showTail ? 7 : 22,
+                    borderBottomLeftRadius: !msg.fromMe && showTail ? 7 : 22,
+                    background: msg.fromMe
+                      ? 'linear-gradient(180deg, var(--accent-hi), var(--accent-lo))'
+                      : 'var(--bubble-in)',
+                    color: msg.fromMe ? 'var(--on-accent)' : 'var(--text)',
+                    border: msg.fromMe ? 'none' : '1px solid var(--border)',
+                  }}
+                >
+                  {msg.photoUrl ? (
+                    <img src={msg.photoUrl} alt="Shared" className="max-h-64 max-w-full rounded-2xl object-cover" />
+                  ) : (
+                    <p className="whitespace-pre-wrap">{msg.text}</p>
+                  )}
+                  <div className={`mt-1 flex items-center justify-end gap-1.5 ${msg.photoUrl ? 'pr-1' : ''}`}>
+                    {msg.relayed && (
+                      <span
+                        className="mono rounded px-1 text-[9px] uppercase tracking-wide"
+                        style={{ background: 'color-mix(in oklch, currentColor 16%, transparent)', opacity: 0.85 }}
+                      >
+                        relayed
+                      </span>
+                    )}
+                    <span className="mono text-[9.5px]" style={{ opacity: msg.fromMe ? 0.8 : 0.55 }}>
+                      {formatTime(msg.ts)}
+                    </span>
+                    {msg.fromMe && msg.delivered && (
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.85 }}>
+                        <path d="M2 12.5 6.5 17l8-10M11 15l1 1 7.5-9" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Input Area */}
-      <div className="bg-white border-t border-gray-200 px-4 py-3 flex-shrink-0">
-        {photoError && (
-          <p className="text-red-500 text-xs mb-2">{photoError}</p>
-        )}
-        <div className="flex items-center gap-2">
-          {/* Photo button */}
+      {/* Composer */}
+      <div className="flex-shrink-0 px-3.5 pb-3.5 pt-2.5">
+        {photoError && <p className="mb-2 text-xs text-warn">{photoError}</p>}
+        <div className="flex items-end gap-2 rounded-3xl border border-line bg-surface p-1.5 shadow-soft">
           {isGuest ? (
             <GuestOnlyDisabled tooltip="Sign in to send photos">
               <button
                 data-testid="photo-btn"
-                className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+                className="grid h-11 w-11 place-items-center rounded-2xl text-ink-3 transition-colors hover:bg-surface2"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
+                <PhotoIcon />
               </button>
             </GuestOnlyDisabled>
           ) : (
@@ -299,25 +327,12 @@ export const Chat: React.FC = () => {
               <button
                 data-testid="photo-btn"
                 onClick={handlePhotoClick}
-                className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
                 title="Send photo"
+                className="grid h-11 w-11 place-items-center rounded-2xl text-ink-3 transition-colors hover:bg-surface2"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
+                <PhotoIcon />
               </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileChange}
-              />
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             </>
           )}
 
@@ -327,24 +342,25 @@ export const Chat: React.FC = () => {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message…"
-            className="flex-1 input text-sm"
+            placeholder="Message — disappears when you leave"
+            className="flex-1 border-none bg-transparent px-1 py-2.5 text-[15px] text-ink outline-none placeholder:text-ink-4"
           />
 
           <button
             data-testid="chat-send"
             onClick={sendMessage}
             disabled={!inputText.trim()}
-            className="btn-primary p-2 disabled:opacity-40"
             aria-label="Send"
+            className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-2xl transition-all"
+            style={{
+              background: inputText.trim() ? 'linear-gradient(180deg, var(--accent-hi), var(--accent-lo))' : 'var(--surface-2)',
+              color: inputText.trim() ? 'var(--on-accent)' : 'var(--text-4)',
+              boxShadow: inputText.trim() ? '0 4px 16px var(--accent-soft)' : 'none',
+              transform: inputText.trim() ? 'scale(1)' : 'scale(.96)',
+            }}
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-              />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M7 11L17 6.2a.6.6 0 0 1 .82.78l-4.5 11.4a.6.6 0 0 1-1.1.04L10.5 13.5 7 11Z" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>
@@ -352,3 +368,15 @@ export const Chat: React.FC = () => {
     </div>
   );
 };
+
+const PhotoIcon: React.FC = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    <path
+      d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Zm0 9 4-3.6a1.5 1.5 0 0 1 2 0l2.5 2.3m0 0 2-1.7a1.5 1.5 0 0 1 1.9 0L20 14.2M15.5 8.5h.01"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);

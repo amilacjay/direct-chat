@@ -2,32 +2,156 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   DIRECT — design tokens (dark default + light)
+   Fonts are loaded in index.html. Accent hue is overridable.
+   ============================================================ */
+
+:root {
+  --accent-h: 285;
+  --accent: oklch(0.66 0.19 var(--accent-h));
+  --accent-hi: oklch(0.72 0.18 var(--accent-h));
+  --accent-lo: oklch(0.58 0.18 var(--accent-h));
+  --accent-soft: oklch(0.66 0.19 var(--accent-h) / 0.14);
+  --accent-line: oklch(0.66 0.19 var(--accent-h) / 0.32);
+  --on-accent: #fbfaff;
+
+  --good: oklch(0.74 0.15 158);
+  --warn: oklch(0.78 0.14 70);
+}
+
+/* ---------------- DARK (default) ---------------- */
+:root,
+[data-theme='dark'] {
+  --bg: oklch(0.165 0.006 280);
+  --bg-2: oklch(0.205 0.008 280);
+  --surface: oklch(0.225 0.009 280);
+  --surface-2: oklch(0.265 0.011 280);
+  --surface-hi: oklch(0.31 0.012 280);
+  --border: oklch(1 0 0 / 0.09);
+  --border-hi: oklch(1 0 0 / 0.16);
+  --text: oklch(0.96 0.004 280);
+  --text-2: oklch(0.78 0.008 280);
+  --text-3: oklch(0.62 0.01 280);
+  --text-4: oklch(0.5 0.01 280);
+  --bubble-in: oklch(0.255 0.01 280);
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4);
+  --shadow-md: 0 8px 30px oklch(0 0 0 / 0.45);
+  --shadow-lg: 0 24px 70px oklch(0 0 0 / 0.55);
+  --glow: 0 0 0 1px var(--accent-line), 0 10px 40px oklch(0.66 0.19 var(--accent-h) / 0.28);
+  --grid-line: oklch(1 0 0 / 0.025);
+  color-scheme: dark;
+}
+
+/* ---------------- LIGHT ---------------- */
+[data-theme='light'] {
+  --bg: oklch(0.975 0.004 95);
+  --bg-2: oklch(0.955 0.005 95);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.975 0.004 95);
+  --surface-hi: oklch(0.945 0.005 95);
+  --border: oklch(0.2 0.02 280 / 0.1);
+  --border-hi: oklch(0.2 0.02 280 / 0.18);
+  --text: oklch(0.22 0.012 280);
+  --text-2: oklch(0.42 0.012 280);
+  --text-3: oklch(0.56 0.012 280);
+  --text-4: oklch(0.68 0.01 280);
+  --bubble-in: oklch(1 0 0);
+  --shadow-sm: 0 1px 2px oklch(0.2 0.02 280 / 0.06);
+  --shadow-md: 0 10px 34px oklch(0.2 0.02 280 / 0.1);
+  --shadow-lg: 0 26px 70px oklch(0.2 0.02 280 / 0.14);
+  --glow: 0 0 0 1px var(--accent-line), 0 12px 40px oklch(0.66 0.19 var(--accent-h) / 0.22);
+  --grid-line: oklch(0.2 0.02 280 / 0.03);
+  color-scheme: light;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
   }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
   body {
-    @apply bg-gray-50 text-gray-900 font-sans;
+    @apply bg-bg text-ink font-sans antialiased;
+  }
+  ::selection {
+    background: var(--accent-soft);
+  }
+
+  /* Smooth theme crossfade — toggle adds .theming briefly */
+  .theming,
+  .theming * {
+    transition: background-color 0.45s ease, color 0.35s ease, border-color 0.45s ease,
+      box-shadow 0.45s ease !important;
+  }
+
+  /* Scrollbars */
+  *::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--border-hi);
+    border-radius: 99px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--text-4);
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-4 h-11 rounded-full font-semibold
+      transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent
+      disabled:opacity-45 disabled:cursor-not-allowed;
+    letter-spacing: -0.01em;
   }
   .btn-primary {
-    @apply btn bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+    @apply btn text-accent-ink;
+    background: linear-gradient(180deg, var(--accent-hi), var(--accent-lo));
+    box-shadow: 0 6px 20px var(--accent-soft);
+  }
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1.5px);
+    box-shadow: var(--glow);
   }
   .btn-secondary {
-    @apply btn bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-400;
+    @apply btn bg-surface text-ink border border-lineHi hover:bg-surface2;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-ink-2 border border-line hover:bg-surface2;
   }
   .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+    @apply btn text-warn bg-transparent;
+    border: 1px solid color-mix(in oklch, var(--warn) 35%, transparent);
   }
   .input {
-    @apply block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+    @apply block w-full rounded-xl bg-surface border border-line px-3.5 h-11 text-sm text-ink
+      placeholder:text-ink-4 focus:outline-none focus:border-accent-line
+      focus:ring-2 focus:ring-accent-soft transition-colors;
   }
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-4;
+    @apply bg-surface rounded-2xl border border-line p-4 shadow-soft;
+  }
+  .mono {
+    @apply font-mono;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
   }
 }

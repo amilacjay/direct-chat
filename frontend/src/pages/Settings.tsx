@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import { useToast } from '../components/Toast';
+import { useTheme } from '../hooks/useTheme';
+import { ThemeToggle } from '../components/ThemeToggle';
+import { ConnPill } from '../components/ConnPill';
 import type { NotificationOut } from '../lib/types';
 
 interface BlockedUser {
@@ -14,10 +17,10 @@ export const Settings: React.FC = () => {
   const { isGuest } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { theme } = useTheme();
 
   const [appearOnline, setAppearOnline] = useState(true);
   const [savingOnline, setSavingOnline] = useState(false);
-  // Block list is local — API endpoint for listing blocks is not specified in contract
   const [blockedUsers] = useState<BlockedUser[]>([]);
   const [blockInput, setBlockInput] = useState('');
   const [notifications, setNotifications] = useState<NotificationOut[]>([]);
@@ -83,49 +86,72 @@ export const Settings: React.FC = () => {
   };
 
   return (
-    <div className="max-w-lg mx-auto p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
+    <div className="mx-auto max-w-lg overflow-y-auto p-6">
+      <h1 className="font-display mb-6 text-2xl font-semibold tracking-tight text-ink">Settings</h1>
 
-      {/* Presence */}
-      <section className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
-        <h2 className="font-semibold text-gray-800 mb-3">Presence</h2>
+      {/* Appearance */}
+      <section className="card mb-4">
+        <h2 className="mb-3 font-semibold text-ink-2">Appearance</h2>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-700 font-medium">Appear online</p>
-            <p className="text-xs text-gray-400">
-              {appearOnline
-                ? 'Others can see you in the online list'
-                : 'You are invisible to other users'}
+            <p className="text-sm font-medium text-ink">Theme</p>
+            <p className="text-xs text-ink-3">{theme === 'dark' ? 'Dark — easy on the eyes' : 'Light — clean & bright'}</p>
+          </div>
+          <ThemeToggle />
+        </div>
+      </section>
+
+      {/* Presence */}
+      <section className="card mb-4">
+        <h2 className="mb-3 font-semibold text-ink-2">Presence</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-ink">Appear online</p>
+            <p className="text-xs text-ink-3">
+              {appearOnline ? 'Others can see you in the online list' : 'You are invisible to other users'}
             </p>
           </div>
           <button
             data-testid="nav-online-toggle"
             onClick={handleToggleOnline}
             disabled={savingOnline}
-            className={`relative inline-flex w-11 h-6 rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
-              appearOnline ? 'bg-blue-600' : 'bg-gray-300'
-            }`}
+            className="relative inline-flex h-7 w-12 flex-shrink-0 rounded-full p-[3px] transition-colors focus:outline-none disabled:opacity-50"
+            style={{ background: appearOnline ? 'var(--accent)' : 'var(--surface-hi)' }}
             role="switch"
             aria-checked={appearOnline}
           >
             <span
-              className={`inline-block w-4 h-4 mt-1 ml-1 rounded-full bg-white shadow transform transition-transform ${
-                appearOnline ? 'translate-x-5' : 'translate-x-0'
-              }`}
+              className="inline-block h-[22px] w-[22px] rounded-full bg-white shadow transition-transform"
+              style={{ transform: appearOnline ? 'translateX(20px)' : 'translateX(0)' }}
             />
           </button>
         </div>
       </section>
 
+      {/* Privacy */}
+      <section className="mb-4 rounded-2xl border border-accent-line bg-accent-soft p-4">
+        <div className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-accent">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <path d="M7.5 10.5V8a4.5 4.5 0 0 1 9 0v2.5M6 10.5h12a1.5 1.5 0 0 1 1.5 1.5v6A1.5 1.5 0 0 1 18 19.5H6A1.5 1.5 0 0 1 4.5 18v-6A1.5 1.5 0 0 1 6 10.5Z" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Nothing is stored
+          <span className="ml-auto"><ConnPill state="p2p" compact /></span>
+        </div>
+        <p className="text-[13px] leading-relaxed text-ink-2">
+          Direct keeps no message history, no profiles, and no metadata on its servers. Your
+          conversations exist only on the devices in the chat.
+        </p>
+      </section>
+
       {/* Notifications */}
-      <section className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-gray-800">Notifications</h2>
+      <section className="card mb-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-semibold text-ink-2">Notifications</h2>
           {notifications.length > 0 && (
             <button
               data-testid="clear-notifications"
               onClick={handleClearNotifications}
-              className="text-xs text-red-500 hover:text-red-700 hover:underline"
+              className="text-xs text-warn hover:underline"
             >
               Clear all
             </button>
@@ -133,29 +159,27 @@ export const Settings: React.FC = () => {
         </div>
 
         {notifications.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-4">No notifications</p>
+          <p className="py-4 text-center text-sm text-ink-4">No notifications</p>
         ) : (
-          <div className="space-y-2 max-h-72 overflow-y-auto">
+          <div className="max-h-72 space-y-2 overflow-y-auto">
             {notifications.map((n) => (
               <div
                 key={n.id}
-                className={`flex items-center justify-between gap-3 p-2 rounded-lg text-sm ${
-                  n.read ? 'bg-gray-50' : 'bg-blue-50'
+                className={`flex items-center justify-between gap-3 rounded-xl p-2 text-sm ${
+                  n.read ? 'bg-surface2' : 'bg-accent-soft'
                 }`}
               >
                 <div className="min-w-0">
-                  <p className="text-gray-800 font-medium truncate">{formatNotifType(n.type)}</p>
-                  <p className="text-xs text-gray-400">
-                    {new Date(n.created_at).toLocaleString()}
-                  </p>
+                  <p className="truncate font-medium text-ink">{formatNotifType(n.type)}</p>
+                  <p className="text-xs text-ink-4">{new Date(n.created_at).toLocaleString()}</p>
                 </div>
                 <button
                   onClick={() => handleRemoveNotification(n.id)}
                   title="Remove"
                   aria-label="Remove notification"
-                  className="flex-shrink-0 p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  className="flex-shrink-0 rounded p-1 text-ink-4 transition-colors hover:bg-surface2 hover:text-warn"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -166,32 +190,29 @@ export const Settings: React.FC = () => {
       </section>
 
       {/* Block list */}
-      <section className="bg-white border border-gray-200 rounded-xl p-4">
-        <h2 className="font-semibold text-gray-800 mb-3">Blocked Users</h2>
+      <section className="card">
+        <h2 className="mb-3 font-semibold text-ink-2">Blocked Users</h2>
 
-        <form onSubmit={handleBlock} className="flex gap-2 mb-4">
+        <form onSubmit={handleBlock} className="mb-4 flex gap-2">
           <input
             type="text"
             value={blockInput}
             onChange={(e) => setBlockInput(e.target.value)}
             placeholder="User ID to block"
-            className="input flex-1 text-sm"
+            className="input flex-1"
           />
-          <button type="submit" className="btn-danger text-sm">
+          <button type="submit" className="btn-danger">
             Block
           </button>
         </form>
 
         {blockedUsers.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-4">No blocked users</p>
+          <p className="py-4 text-center text-sm text-ink-4">No blocked users</p>
         ) : (
           <div className="space-y-2">
             {blockedUsers.map((u) => (
-              <div
-                key={u.id}
-                className="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-sm"
-              >
-                <span className="text-gray-700">{u.display_name}</span>
+              <div key={u.id} className="flex items-center justify-between rounded-xl bg-surface2 p-2 text-sm">
+                <span className="text-ink-2">{u.display_name}</span>
                 <button
                   onClick={async () => {
                     try {
@@ -201,7 +222,7 @@ export const Settings: React.FC = () => {
                       toast('Failed to unblock', 'error');
                     }
                   }}
-                  className="text-red-500 text-xs hover:underline"
+                  className="text-xs text-warn hover:underline"
                 >
                   Unblock
                 </button>

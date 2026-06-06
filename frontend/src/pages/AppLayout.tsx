@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 import { wsClient } from '../lib/websocket';
 import { peerManager } from '../lib/webrtc';
@@ -12,23 +12,23 @@ import type { NotificationOut, WsNotification, WsSignal } from '../lib/types';
 export const AppLayout: React.FC = () => {
   const { token, user } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [notifications, setNotifications] = useState<NotificationOut[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const wsConnected = useRef(false);
 
-  // Capture + persist inbound chat messages and surface notifications globally,
-  // independent of which chat (if any) is open.
+  // On mobile we show ONE pane at a time: the people list, or the open chat.
+  const onChat = /^\/app\/chat\//.test(location.pathname);
+
   useIncomingMessages();
 
-  // Guard
   useEffect(() => {
     if (!token) {
       navigate('/', { replace: true });
     }
   }, [token, navigate]);
 
-  // Connect WS
   useEffect(() => {
     if (!token || wsConnected.current) return;
     wsConnected.current = true;
@@ -41,7 +41,6 @@ export const AppLayout: React.FC = () => {
     };
   }, [token]);
 
-  // Handle incoming signals for WebRTC
   useEffect(() => {
     const handler = (msg: WsSignal) => {
       peerManager.handleSignal(msg.from, msg.data).catch(() => {});
@@ -50,14 +49,12 @@ export const AppLayout: React.FC = () => {
     return () => wsClient.off('signal', handler);
   }, []);
 
-  // Fetch initial notifications
   useEffect(() => {
     if (user && !user.is_guest) {
       api.get<NotificationOut[]>('/notifications').then(setNotifications).catch(() => {});
     }
   }, [user]);
 
-  // Live notifications via WS
   const handleNotification = useCallback((msg: WsNotification) => {
     setNotifications((prev) => [msg.data, ...prev]);
   }, []);
@@ -72,16 +69,19 @@ export const AppLayout: React.FC = () => {
   const handleBellClick = () => {
     setShowNotifs((v) => !v);
     if (!showNotifs && unreadCount > 0) {
-      api.post('/notifications/read-all').then(() => {
-        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      }).catch(() => {});
+      api
+        .post('/notifications/read-all')
+        .then(() => {
+          setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        })
+        .catch(() => {});
     }
   };
 
   if (!token) return null;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
       <NavBar
         notifications={notifications}
         unreadCount={unreadCount}
@@ -90,8 +90,12 @@ export const AppLayout: React.FC = () => {
         onCloseNotifs={() => setShowNotifs(false)}
       />
       <div className="flex flex-1 overflow-hidden">
-        <OnlineUsers />
-        <main className="flex-1 overflow-hidden">
+        {/* People list — full width on mobile (hidden while a chat is open), fixed rail on desktop */}
+        <div className={`${onChat ? 'hidden md:flex' : 'flex'} w-full md:w-auto`}>
+          <OnlineUsers />
+        </div>
+        {/* Chat / welcome pane — hidden on mobile until a chat is open */}
+        <main className={`${onChat ? 'block' : 'hidden md:block'} flex-1 overflow-hidden`}>
           <Outlet />
         </main>
       </div>

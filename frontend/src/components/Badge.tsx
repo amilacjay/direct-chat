@@ -2,22 +2,26 @@ import React from 'react';
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: 'blue' | 'gray' | 'green' | 'red' | 'yellow';
+  variant?: 'blue' | 'gray' | 'green' | 'red' | 'yellow' | 'accent';
   className?: string;
 }
 
-const variantMap = {
-  blue: 'bg-blue-100 text-blue-700',
-  gray: 'bg-gray-100 text-gray-600',
-  green: 'bg-green-100 text-green-700',
-  red: 'bg-red-100 text-red-700',
-  yellow: 'bg-yellow-100 text-yellow-700',
+// Token-based, theme-aware. `blue` is kept as an alias of `accent` for compatibility.
+const variantMap: Record<NonNullable<BadgeProps['variant']>, string> = {
+  accent: 'bg-accent-soft text-accent',
+  blue: 'bg-accent-soft text-accent',
+  gray: 'bg-surface2 text-ink-3',
+  green: 'text-good',
+  red: 'text-warn',
+  yellow: 'text-warn',
 };
 
 export const Badge: React.FC<BadgeProps> = ({ children, variant = 'gray', className = '' }) => {
+  const tinted = variant === 'green' || variant === 'red' || variant === 'yellow';
   return (
     <span
-      className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${variantMap[variant]} ${className}`}
+      className={`mono inline-flex items-center px-1.5 py-0.5 rounded-md text-[10.5px] font-semibold tracking-wide uppercase ${variantMap[variant]} ${className}`}
+      style={tinted ? { background: 'color-mix(in oklch, currentColor 14%, transparent)' } : undefined}
     >
       {children}
     </span>

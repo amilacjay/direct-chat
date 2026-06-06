@@ -2,10 +2,54 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth';
+import { Logo } from '../components/Logo';
+import { ThemeToggle } from '../components/ThemeToggle';
 import type { TokenResponse } from '../lib/types';
 
 const API = import.meta.env.VITE_API_URL as string;
 const DEV_AUTH = import.meta.env.VITE_DEV_AUTH === 'true';
+
+const FEATURES = [
+  {
+    t: 'Peer-to-peer',
+    d: 'Encrypted WebRTC links your devices directly, with a secure relay only as fallback.',
+    icon: (
+      <path
+        d="M10 14a3.5 3.5 0 0 0 5 0l2.5-2.5a3.5 3.5 0 0 0-5-5L11 8M14 10a3.5 3.5 0 0 0-5 0L6.5 12.5a3.5 3.5 0 0 0 5 5L13 16"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+  },
+  {
+    t: 'Zero history',
+    d: 'Conversations live in memory. Refresh or leave and they vanish — nothing is logged.',
+    icon: (
+      <path
+        d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Zm9.5 2.6a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2Z"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+  },
+  {
+    t: 'No profiles',
+    d: 'Hop in as a guest. No phone number, no email, no identity to mine.',
+    icon: (
+      <path
+        d="M5.5 19.5V10a6.5 6.5 0 0 1 13 0v9.5l-2.2-1.6-2.2 1.6-2.1-1.6-2.1 1.6-2.1-1.6-1.9 1.6ZM9.5 10.5h.01M14.5 10.5h.01"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+  },
+];
 
 export const Landing: React.FC = () => {
   const navigate = useNavigate();
@@ -61,22 +105,85 @@ export const Landing: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Direct</h1>
-          <p className="text-gray-500 text-sm">Peer-to-peer private chat</p>
-        </div>
+    <div
+      className="relative min-h-screen overflow-y-auto"
+      style={{ background: 'radial-gradient(140% 100% at 50% -10%, var(--bg-2), var(--bg) 55%)' }}
+    >
+      {/* Background grid + aura */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px)',
+            backgroundSize: '46px 46px',
+            maskImage: 'radial-gradient(120% 90% at 50% 0%, #000 40%, transparent 100%)',
+          }}
+        />
+        <div
+          className="absolute left-1/2 -translate-x-1/2"
+          style={{
+            top: '-12%',
+            width: 720,
+            height: 720,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, var(--accent-soft), transparent 62%)',
+            filter: 'blur(14px)',
+          }}
+        />
+      </div>
 
-        {/* Auth Buttons */}
-        <div className="space-y-3 mb-6">
+      {/* Top bar */}
+      <header className="relative z-10 mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
+        <div className="flex items-center gap-2.5 text-ink">
+          <span className="text-accent">
+            <Logo size={26} live />
+          </span>
+          <span className="font-display text-xl font-semibold tracking-tight">Direct</span>
+        </div>
+        <ThemeToggle />
+      </header>
+
+      {/* Hero */}
+      <main className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-6 pb-16 pt-8 text-center sm:pt-14">
+        <span className="mono mb-6 inline-flex items-center gap-2 rounded-full border border-accent-line bg-accent-soft px-3.5 py-1.5 text-[11.5px] font-semibold tracking-[0.1em] text-accent">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M7.5 10.5V8a4.5 4.5 0 0 1 9 0v2.5M6 10.5h12a1.5 1.5 0 0 1 1.5 1.5v6A1.5 1.5 0 0 1 18 19.5H6A1.5 1.5 0 0 1 4.5 18v-6A1.5 1.5 0 0 1 6 10.5Z"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          NO ACCOUNT REQUIRED · NOTHING STORED
+        </span>
+
+        <h1
+          className="font-display font-semibold tracking-tight text-ink"
+          style={{ fontSize: 'clamp(40px, 8vw, 72px)', lineHeight: 1.02, textWrap: 'balance' }}
+        >
+          Chat now.
+          <br />
+          <span className="text-accent">Forget the past.</span>
+        </h1>
+
+        <p
+          className="mt-5 max-w-xl text-ink-2"
+          style={{ fontSize: 'clamp(16px, 2.3vw, 20px)', lineHeight: 1.55, textWrap: 'pretty' }}
+        >
+          Direct connects you peer-to-peer. Messages travel straight between devices — no history, no
+          profiles, no trace left on any server. Close the chat and it’s gone for good.
+        </p>
+
+        {/* Auth */}
+        <div className="mt-9 flex w-full max-w-[340px] flex-col gap-3">
           <button
             data-testid="google-btn"
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+            className="btn-secondary h-[52px]"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+            <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                 fill="#4285F4"
@@ -94,40 +201,53 @@ export const Landing: React.FC = () => {
                 fill="#EA4335"
               />
             </svg>
-            Sign in with Google
+            Continue with Google
           </button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
-            </div>
-            <div className="relative flex justify-center text-xs text-gray-400">
-              <span className="bg-white px-2">or</span>
-            </div>
-          </div>
 
           <button
             data-testid="guest-btn"
             onClick={handleGuest}
             disabled={guestLoading}
-            className="w-full py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-colors disabled:opacity-50"
+            className="btn-primary h-[52px]"
           >
-            {guestLoading ? 'Loading...' : 'Continue as Guest'}
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M5.5 19.5V10a6.5 6.5 0 0 1 13 0v9.5l-2.2-1.6-2.2 1.6-2.1-1.6-2.1 1.6-2.1-1.6-1.9 1.6ZM9.5 10.5h.01M14.5 10.5h.01"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            {guestLoading ? 'Loading…' : 'Continue as Guest'}
           </button>
 
-          {guestError && (
-            <p className="text-red-500 text-sm text-center">{guestError}</p>
-          )}
+          {guestError && <p className="text-center text-sm text-warn">{guestError}</p>}
 
-          <p className="text-xs text-gray-400 text-center">
-            You must be 18 or older to create an account.
+          <p className="mono mt-1 text-[11px] tracking-wide text-ink-4">
+            Guests are anonymous. You must be 18+ to use Direct.
           </p>
         </div>
 
-        {/* Dev Login Form */}
+        {/* Feature row */}
+        <div className="mt-16 grid w-full max-w-2xl gap-3.5 text-left sm:grid-cols-3">
+          {FEATURES.map((f) => (
+            <div key={f.t} className="card">
+              <div className="mb-3 grid h-9 w-9 place-items-center rounded-xl bg-accent-soft text-accent">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+                  {f.icon}
+                </svg>
+              </div>
+              <h3 className="text-[15.5px] font-semibold tracking-tight text-ink">{f.t}</h3>
+              <p className="mt-1 text-[13.5px] leading-relaxed text-ink-3">{f.d}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Dev login */}
         {DEV_AUTH && (
-          <div className="mt-6 pt-6 border-t border-dashed border-gray-200">
-            <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wider mb-3">
+          <div className="mt-12 w-full max-w-[340px] border-t border-dashed border-line pt-6 text-left">
+            <p className="mono mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-warn">
               Dev Login
             </p>
             <form onSubmit={handleDevLogin} className="space-y-3">
@@ -138,7 +258,7 @@ export const Landing: React.FC = () => {
                 value={devEmail}
                 onChange={(e) => setDevEmail(e.target.value)}
                 required
-                className="input text-sm"
+                className="input"
               />
               <input
                 data-testid="dev-login-name"
@@ -149,32 +269,28 @@ export const Landing: React.FC = () => {
                 required
                 minLength={3}
                 maxLength={30}
-                className="input text-sm"
+                className="input"
               />
               <input
                 data-testid="dev-login-dob"
                 type="date"
-                placeholder="Date of birth"
                 value={devDob}
                 onChange={(e) => setDevDob(e.target.value)}
                 required
-                className="input text-sm"
+                className="input"
               />
-              {devError && (
-                <p className="text-red-500 text-xs">{devError}</p>
-              )}
-              <button
-                data-testid="dev-login-submit"
-                type="submit"
-                disabled={devLoading}
-                className="w-full btn-primary text-sm py-2"
-              >
-                {devLoading ? 'Logging in...' : 'Dev Login'}
+              {devError && <p className="text-xs text-warn">{devError}</p>}
+              <button data-testid="dev-login-submit" type="submit" disabled={devLoading} className="btn-primary w-full">
+                {devLoading ? 'Logging in…' : 'Dev Login'}
               </button>
             </form>
           </div>
         )}
-      </div>
+      </main>
+
+      <footer className="mono relative z-10 px-6 pb-8 pt-2 text-center text-[11px] tracking-[0.06em] text-ink-4">
+        DIRECT · PEER-TO-PEER · NO DATA RETENTION
+      </footer>
     </div>
   );
 };
