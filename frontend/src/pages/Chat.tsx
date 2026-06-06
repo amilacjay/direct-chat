@@ -9,6 +9,8 @@ import { useChatStore } from '../store/chat';
 import { Avatar } from '../components/Avatar';
 import { ConnPill, type ConnState } from '../components/ConnPill';
 import { GuestOnlyDisabled } from '../components/GuestOnlyDisabled';
+import { GenderIcon, genderColor } from '../components/GenderIcon';
+import { ProfileModal } from '../components/ProfileModal';
 import type { ChatMessage } from '../store/chat';
 import type { PublicUser } from '../lib/types';
 
@@ -27,6 +29,7 @@ export const Chat: React.FC = () => {
   const setActivePeer = useChatStore((s) => s.setActivePeer);
 
   const [peer, setPeer] = useState<PublicUser | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
   const [inputText, setInputText] = useState('');
   const [webrtcOpen, setWebrtcOpen] = useState(false);
   const [webrtcFailed, setWebrtcFailed] = useState(false);
@@ -204,6 +207,7 @@ export const Chat: React.FC = () => {
   const connState: ConnState = webrtcOpen ? 'p2p' : webrtcFailed ? 'relay' : 'connecting';
 
   return (
+    <>
     <div className="flex h-full flex-col bg-bg">
       {/* Header */}
       <header
@@ -221,16 +225,28 @@ export const Chat: React.FC = () => {
         </button>
 
         {peer ? (
-          <>
+          <button
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-1 py-0.5 text-left transition-colors hover:bg-surface2"
+            onClick={() => !peer.is_guest && setShowProfile(true)}
+            title={peer.is_guest ? undefined : 'View profile'}
+          >
             <div className="relative flex-shrink-0">
               <Avatar src={peer.avatar_url} name={peer.display_name} size="md" />
               <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-[2.5px] border-bg" style={{ background: 'var(--good)' }} />
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[15.5px] font-semibold tracking-tight text-ink">{peer.display_name}</p>
-              <p className="text-xs text-good">{webrtcOpen ? 'online' : webrtcFailed ? 'online' : 'connecting…'}</p>
+              <div className="flex items-center gap-1 text-xs text-good">
+                {peer.gender && (
+                  <span className={`flex items-center ${genderColor[peer.gender] ?? 'text-ink-3'}`}>
+                    <GenderIcon gender={peer.gender} className="h-3 w-3" />
+                  </span>
+                )}
+                {peer.age && <span className="text-ink-3">{peer.age} ·</span>}
+                <span>{webrtcOpen ? 'online' : webrtcFailed ? 'online' : 'connecting…'}</span>
+              </div>
             </div>
-          </>
+          </button>
         ) : (
           <div className="h-4 w-32 animate-pulse rounded bg-surface2" />
         )}
@@ -314,7 +330,7 @@ export const Chat: React.FC = () => {
         {photoError && <p className="mb-2 text-xs text-warn">{photoError}</p>}
         <div className="flex items-end gap-2 rounded-3xl border border-line bg-surface p-1.5 shadow-soft">
           {isGuest ? (
-            <GuestOnlyDisabled tooltip="Sign in to send photos">
+            <GuestOnlyDisabled tooltip="Sign in to send photos" tooltipAlign="left">
               <button
                 data-testid="photo-btn"
                 className="grid h-11 w-11 place-items-center rounded-2xl text-ink-3 transition-colors hover:bg-surface2"
@@ -366,6 +382,11 @@ export const Chat: React.FC = () => {
         </div>
       </div>
     </div>
+
+    {showProfile && userId && (
+      <ProfileModal userId={userId} onClose={() => setShowProfile(false)} />
+    )}
+    </>
   );
 };
 

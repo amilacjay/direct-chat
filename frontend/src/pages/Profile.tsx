@@ -8,6 +8,14 @@ import type { PublicUser } from '../lib/types';
 
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024; // 2 MB
 
+const GENDER_OPTIONS = [
+  { value: '', label: 'Prefer not to say' },
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'nonbinary', label: 'Non-binary' },
+  { value: 'other', label: 'Other' },
+];
+
 export const Profile: React.FC = () => {
   const { user, isGuest, setUser } = useAuthStore();
   const navigate = useNavigate();
@@ -17,6 +25,10 @@ export const Profile: React.FC = () => {
   const [displayName, setDisplayName] = useState(user?.display_name ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
   const [location, setLocation] = useState(user?.location ?? '');
+  const [gender, setGender] = useState(user?.gender ?? '');
+  const [age, setAge] = useState<string>(user?.age != null ? String(user.age) : '');
+  const [showGender, setShowGender] = useState(user?.show_gender ?? true);
+  const [showAge, setShowAge] = useState(user?.show_age ?? true);
   const [saving, setSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState('');
@@ -32,6 +44,10 @@ export const Profile: React.FC = () => {
       setDisplayName(user.display_name);
       setBio(user.bio ?? '');
       setLocation(user.location ?? '');
+      setGender(user.gender ?? '');
+      setAge(user.age != null ? String(user.age) : '');
+      setShowGender(user.show_gender ?? true);
+      setShowAge(user.show_age ?? true);
     }
   }, [user]);
 
@@ -39,10 +55,20 @@ export const Profile: React.FC = () => {
     e.preventDefault();
     setSaving(true);
     try {
+      const ageNum = age.trim() !== '' ? parseInt(age, 10) : null;
+      if (ageNum !== null && (isNaN(ageNum) || ageNum < 1 || ageNum > 120)) {
+        toast('Age must be between 1 and 120', 'error');
+        setSaving(false);
+        return;
+      }
       const updated = await api.patch<PublicUser>('/users/me', {
         display_name: displayName,
         bio: bio || undefined,
         location: location || undefined,
+        gender: gender || null,
+        age: ageNum,
+        show_gender: showGender,
+        show_age: showAge,
       });
       setUser(updated);
       toast('Profile saved!', 'success');
@@ -76,7 +102,6 @@ export const Profile: React.FC = () => {
       return;
     }
 
-    // Preview
     const previewUrl = URL.createObjectURL(file);
     setAvatarPreview(previewUrl);
 
@@ -99,23 +124,24 @@ export const Profile: React.FC = () => {
   if (!user) return null;
 
   return (
-    <div className="max-w-lg mx-auto p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Profile</h1>
+    <div className="mx-auto max-w-lg overflow-y-auto p-6">
+      <h1 className="font-display mb-6 text-2xl font-semibold tracking-tight text-ink">Profile</h1>
 
       {/* Avatar */}
-      <div className="flex items-center gap-4 mb-6">
-        <div className="relative group">
+      <div className="mb-6 flex items-center gap-4">
+        <div className="group relative">
           <Avatar
             src={avatarPreview ?? user.avatar_url}
             name={user.display_name}
             size="lg"
             className="cursor-pointer"
+            ring
           />
           <div
             onClick={handleAvatarClick}
-            className="absolute inset-0 rounded-full bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+            className="absolute inset-0 grid cursor-pointer place-items-center rounded-[22px] bg-black/45 opacity-0 transition-opacity group-hover:opacity-100"
           >
-            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -125,33 +151,22 @@ export const Profile: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleAvatarChange}
-          />
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
         <div>
-          <p className="font-semibold text-gray-900">{user.display_name}</p>
-          <button
-            onClick={handleAvatarClick}
-            className="text-sm text-blue-600 hover:underline"
-          >
+          <p className="font-semibold text-ink">{user.display_name}</p>
+          <button onClick={handleAvatarClick} className="text-sm text-accent hover:underline">
             Change avatar
           </button>
-          {avatarError && (
-            <p className="text-red-500 text-xs mt-1">{avatarError}</p>
-          )}
+          {avatarError && <p className="mt-1 text-xs text-warn">{avatarError}</p>}
         </div>
       </div>
 
       {/* Form */}
       <form onSubmit={handleSave} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Display Name <span className="text-red-500">*</span>
+          <label className="mb-1 block text-sm font-medium text-ink-2">
+            Display Name <span className="text-warn">*</span>
           </label>
           <input
             data-testid="display-name-input"
@@ -165,24 +180,24 @@ export const Profile: React.FC = () => {
             className="input"
             placeholder="Your display name"
           />
-          <p className="text-xs text-gray-400 mt-1">3–30 chars, letters, numbers, spaces, _ or -</p>
+          <p className="mt-1 text-xs text-ink-4">3–30 chars, letters, numbers, spaces, _ or -</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+          <label className="mb-1 block text-sm font-medium text-ink-2">Bio</label>
           <textarea
             data-testid="bio-input"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             rows={3}
             maxLength={200}
-            className="input resize-none"
+            className="input resize-none py-2.5"
             placeholder="Tell others a bit about yourself"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+          <label className="mb-1 block text-sm font-medium text-ink-2">Location</label>
           <input
             type="text"
             value={location}
@@ -193,13 +208,56 @@ export const Profile: React.FC = () => {
           />
         </div>
 
+        {/* Gender */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-ink-2">Gender</label>
+          <select value={gender} onChange={(e) => setGender(e.target.value)} className="input">
+            {GENDER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          {gender && (
+            <label className="mt-2 flex cursor-pointer select-none items-center gap-2">
+              <input
+                type="checkbox"
+                checked={showGender}
+                onChange={(e) => setShowGender(e.target.checked)}
+                className="h-4 w-4 rounded accent-[var(--accent)]"
+              />
+              <span className="text-sm text-ink-3">Show gender on my profile</span>
+            </label>
+          )}
+        </div>
+
+        {/* Age */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-ink-2">Age</label>
+          <input
+            type="number"
+            value={age}
+            onChange={(e) => setAge(e.target.value)}
+            min={1}
+            max={120}
+            className="input"
+            placeholder="Your age"
+          />
+          {age.trim() !== '' && (
+            <label className="mt-2 flex cursor-pointer select-none items-center gap-2">
+              <input
+                type="checkbox"
+                checked={showAge}
+                onChange={(e) => setShowAge(e.target.checked)}
+                className="h-4 w-4 rounded accent-[var(--accent)]"
+              />
+              <span className="text-sm text-ink-3">Show age on my profile</span>
+            </label>
+          )}
+        </div>
+
         <div className="pt-2">
-          <button
-            data-testid="save-profile"
-            type="submit"
-            disabled={saving}
-            className="btn-primary w-full"
-          >
+          <button data-testid="save-profile" type="submit" disabled={saving} className="btn-primary w-full">
             {saving ? 'Saving…' : 'Save Profile'}
           </button>
         </div>

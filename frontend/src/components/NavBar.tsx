@@ -80,8 +80,16 @@ export const NavBar: React.FC<NavBarProps> = ({
 
       <ThemeToggle />
 
-      {/* Online toggle — registered only */}
-      {!isGuest && (
+      {/* Online toggle — registered only; guest badge for guests */}
+      {isGuest ? (
+        <span
+          className="mono hidden items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-semibold tracking-wide text-ink-3 sm:flex"
+          style={{ background: 'color-mix(in oklch, currentColor 12%, transparent)' }}
+        >
+          <span className="h-2 w-2 rounded-full" style={{ background: 'currentColor' }} />
+          GUEST
+        </span>
+      ) : (
         <button
           data-testid="nav-online-toggle"
           onClick={handleToggleOnline}

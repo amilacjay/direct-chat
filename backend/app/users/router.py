@@ -11,7 +11,7 @@ from app.core.deps import Principal, get_current_principal, get_current_user
 from app.db.database import get_db
 from app.db.models import User
 from app.redis_client import list_online
-from app.schemas import OnlineUser, PublicUser, UpdateProfile
+from app.schemas import VALID_GENDERS, OnlineUser, PublicUser, UpdateProfile
 from app.storage import save_avatar
 
 router = APIRouter()
@@ -39,13 +39,17 @@ def _detect_image_type(data: bytes) -> Optional[str]:
     return None
 
 
-def _user_to_public(user: User) -> PublicUser:
+def _user_to_public(user: User, for_self: bool = False) -> PublicUser:
     return PublicUser(
         id=str(user.id),
         display_name=user.display_name,
         avatar_url=user.avatar_url,
         bio=user.bio,
         location=user.location,
+        gender=user.gender if (for_self or user.show_gender) else None,
+        age=user.age if (for_self or user.show_age) else None,
+        show_gender=user.show_gender,
+        show_age=user.show_age,
         is_guest=False,
         created_at=user.created_at,
     )
@@ -79,7 +83,7 @@ async def get_me(principal: Principal = Depends(get_current_principal)):
             display_name=principal.display_name,
             is_guest=True,
         )
-    return _user_to_public(principal.user)
+    return _user_to_public(principal.user, for_self=True)
 
 
 @router.patch("/me", response_model=PublicUser)
@@ -105,12 +109,29 @@ async def update_me(
     if body.location is not None:
         user.location = body.location
 
+    if 'gender' in body.model_fields_set:
+        if body.gender and body.gender not in VALID_GENDERS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"gender must be one of: {', '.join(sorted(VALID_GENDERS))}",
+            )
+        user.gender = body.gender or None
+
+    if 'age' in body.model_fields_set:
+        user.age = body.age
+
+    if body.show_gender is not None:
+        user.show_gender = body.show_gender
+
+    if body.show_age is not None:
+        user.show_age = body.show_age
+
     if body.appear_online is not None:
         user.appear_online = body.appear_online
 
     await db.commit()
     await db.refresh(user)
-    return _user_to_public(user)
+    return _user_to_public(user, for_self=True)
 
 
 @router.post("/me/avatar", response_model=PublicUser)
@@ -142,7 +163,7 @@ async def upload_avatar(
     user.avatar_url = url
     await db.commit()
     await db.refresh(user)
-    return _user_to_public(user)
+    return _user_to_public(user, for_self=True)
 
 
 @router.get("/{user_id}", response_model=PublicUser)

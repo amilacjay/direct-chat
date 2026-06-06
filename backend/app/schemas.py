@@ -35,14 +35,25 @@ class PublicUser(BaseModel):
     avatar_url: Optional[str] = None
     bio: Optional[str] = None
     location: Optional[str] = None
+    gender: Optional[str] = None
+    age: Optional[int] = None
+    show_gender: bool = True
+    show_age: bool = True
     is_guest: bool = False
     created_at: Optional[datetime] = None
+
+
+VALID_GENDERS = {"male", "female", "nonbinary", "other"}
 
 
 class UpdateProfile(BaseModel):
     display_name: Optional[str] = Field(default=None, min_length=3, max_length=30)
     bio: Optional[str] = Field(default=None, max_length=300)
     location: Optional[str] = Field(default=None, max_length=100)
+    gender: Optional[str] = Field(default=None, max_length=20)
+    age: Optional[int] = Field(default=None, ge=1, le=120)
+    show_gender: Optional[bool] = None
+    show_age: Optional[bool] = None
     appear_online: Optional[bool] = None
 
 
@@ -50,6 +61,8 @@ class OnlineUser(BaseModel):
     id: str
     display_name: str
     avatar_url: Optional[str] = None
+    gender: Optional[str] = None
+    age: Optional[int] = None
     is_guest: bool = False
 
 

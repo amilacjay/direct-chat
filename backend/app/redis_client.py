@@ -31,6 +31,8 @@ async def set_online(
     display_name: str,
     is_guest: bool,
     avatar_url: Optional[str] = None,
+    gender: Optional[str] = None,
+    age: Optional[int] = None,
 ) -> None:
     r = get_redis()
     await r.hset(
@@ -38,8 +40,10 @@ async def set_online(
         mapping={
             "display_name": display_name,
             "is_guest": "1" if is_guest else "0",
-            # Redis hashes can't hold None, so store "" when there's no avatar.
+            # Redis hashes can't hold None, so store "" when there's no value.
             "avatar_url": avatar_url or "",
+            "gender": gender or "",
+            "age": str(age) if age is not None else "",
             "ts": str(int(time.time())),
         },
     )
@@ -74,11 +78,14 @@ async def list_online() -> list[dict]:
             )
             for k, v in data.items()
         }
+        age_raw = decoded.get("age", "")
         out.append(
             {
                 "id": uid,
                 "display_name": decoded.get("display_name", "Unknown"),
                 "avatar_url": decoded.get("avatar_url") or None,
+                "gender": decoded.get("gender") or None,
+                "age": int(age_raw) if age_raw else None,
                 "is_guest": decoded.get("is_guest") == "1",
             }
         )

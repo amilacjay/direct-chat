@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface AvatarProps {
   src?: string | null;
@@ -29,6 +29,7 @@ const TONES: [string, string][] = [
 ];
 
 export const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md', className = '', ring = false }) => {
+  const [imgError, setImgError] = useState(false);
   const px = PX[size];
   const initials = name
     .trim()
@@ -41,11 +42,12 @@ export const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md', classNam
   const [a, b] = TONES[(name.charCodeAt(0) || 0) % TONES.length];
   const radius = px * 0.34;
 
-  if (src) {
+  if (src && !imgError) {
     return (
       <img
         src={src}
         alt={name}
+        onError={() => setImgError(true)}
         className={`object-cover flex-shrink-0 ${className}`}
         style={{
           width: px,

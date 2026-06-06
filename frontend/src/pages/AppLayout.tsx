@@ -16,6 +16,7 @@ export const AppLayout: React.FC = () => {
 
   const [notifications, setNotifications] = useState<NotificationOut[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const wsConnected = useRef(false);
 
   // On mobile we show ONE pane at a time: the people list, or the open chat.
@@ -92,7 +93,7 @@ export const AppLayout: React.FC = () => {
       <div className="flex flex-1 overflow-hidden">
         {/* People list — full width on mobile (hidden while a chat is open), fixed rail on desktop */}
         <div className={`${onChat ? 'hidden md:flex' : 'flex'} w-full md:w-auto`}>
-          <OnlineUsers />
+          <OnlineUsers collapsed={!sidebarOpen} onToggle={() => setSidebarOpen((v) => !v)} />
         </div>
         {/* Chat / welcome pane — hidden on mobile until a chat is open */}
         <main className={`${onChat ? 'block' : 'hidden md:block'} flex-1 overflow-hidden`}>

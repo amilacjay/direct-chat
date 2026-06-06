@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../lib/api';
 import { useAuthStore } from '../store/auth';
+import { Logo } from '../components/Logo';
 import type { PublicUser, TokenResponse } from '../lib/types';
 
 export const LoginCallback: React.FC = () => {
@@ -50,11 +51,7 @@ export const LoginCallback: React.FC = () => {
     setDobLoading(true);
     setDobError('');
     try {
-      const resp = await api.post<TokenResponse>(
-        '/auth/complete-registration',
-        { dob },
-        token
-      );
+      const resp = await api.post<TokenResponse>('/auth/complete-registration', { dob }, token);
       login(resp.access_token, resp.user, resp.is_guest);
       navigate('/app', { replace: true });
     } catch (err) {
@@ -68,36 +65,54 @@ export const LoginCallback: React.FC = () => {
     }
   };
 
+  // Shared full-screen shell with the Direct backdrop.
+  const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <div
+      className="relative flex min-h-screen items-center justify-center overflow-hidden p-4"
+      style={{ background: 'radial-gradient(140% 100% at 50% -10%, var(--bg-2), var(--bg) 55%)' }}
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-[-12%] -translate-x-1/2"
+        style={{
+          width: 620,
+          height: 620,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, var(--accent-soft), transparent 62%)',
+          filter: 'blur(14px)',
+        }}
+      />
+      <div className="relative z-10 w-full max-w-sm">{children}</div>
+    </div>
+  );
+
   if (pageError) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 max-w-sm w-full text-center">
-          <p className="text-red-500 mb-4">{pageError}</p>
-          <button
-            onClick={() => navigate('/')}
-            className="btn-primary text-sm"
-          >
+      <Shell>
+        <div className="card text-center">
+          <p className="mb-4 text-warn">{pageError}</p>
+          <button onClick={() => navigate('/')} className="btn-primary mx-auto text-sm">
             Back to Home
           </button>
         </div>
-      </div>
+      </Shell>
     );
   }
 
   if (isNew === '1' && token) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Almost there!</h2>
-          <p className="text-gray-500 text-sm mb-6">
-            Please confirm your date of birth to complete registration.
-            You must be 18 or older.
+      <Shell>
+        <div className="rounded-3xl border border-line bg-surface p-8 shadow-float">
+          <div className="mb-4 text-accent">
+            <Logo size={34} live />
+          </div>
+          <h2 className="font-display text-2xl font-semibold tracking-tight text-ink">Almost there</h2>
+          <p className="mb-6 mt-1.5 text-sm text-ink-3">
+            Confirm your date of birth to finish. You must be 18 or older to use Direct.
           </p>
           <form onSubmit={handleDobSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date of Birth
-              </label>
+              <label className="mb-1 block text-sm font-medium text-ink-2">Date of Birth</label>
               <input
                 data-testid="dob-input"
                 type="date"
@@ -107,27 +122,22 @@ export const LoginCallback: React.FC = () => {
                 className="input"
               />
             </div>
-            {dobError && <p className="text-red-500 text-sm">{dobError}</p>}
-            <button
-              data-testid="dob-submit"
-              type="submit"
-              disabled={dobLoading}
-              className="w-full btn-primary"
-            >
-              {dobLoading ? 'Completing registration...' : 'Complete Registration'}
+            {dobError && <p className="text-sm text-warn">{dobError}</p>}
+            <button data-testid="dob-submit" type="submit" disabled={dobLoading} className="btn-primary w-full">
+              {dobLoading ? 'Completing registration…' : 'Complete Registration'}
             </button>
           </form>
         </div>
-      </div>
+      </Shell>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <Shell>
       <div className="text-center">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-gray-500 text-sm">Signing you in…</p>
+        <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-line border-t-accent" />
+        <p className="text-sm text-ink-3">Signing you in…</p>
       </div>
-    </div>
+    </Shell>
   );
 };

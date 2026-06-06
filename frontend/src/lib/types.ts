@@ -4,6 +4,10 @@ export interface PublicUser {
   avatar_url?: string | null;
   bio?: string | null;
   location?: string | null;
+  gender?: string | null;
+  age?: number | null;
+  show_gender?: boolean;
+  show_age?: boolean;
   is_guest: boolean;
   created_at?: string | null;
 }
@@ -12,6 +16,8 @@ export interface OnlineUser {
   id: string;
   display_name: string;
   avatar_url?: string | null;
+  gender?: string | null;
+  age?: number | null;
   is_guest: boolean;
 }
 
@@ -45,6 +51,10 @@ export interface UpdateProfile {
   display_name?: string;
   bio?: string;
   location?: string;
+  gender?: string | null;
+  age?: number | null;
+  show_gender?: boolean;
+  show_age?: boolean;
   appear_online?: boolean;
 }
 

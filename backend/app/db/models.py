@@ -12,6 +12,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Integer,
     String,
     Text,
     UniqueConstraint,
@@ -41,6 +42,10 @@ class User(Base):
     location: Mapped[str | None] = mapped_column(String(100), nullable=True)
     # DOB is stored encrypted at the application layer (string ciphertext).
     dob_encrypted: Mapped[str] = mapped_column(Text)
+    gender: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    age: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    show_gender: Mapped[bool] = mapped_column(Boolean, default=True, server_default='true')
+    show_age: Mapped[bool] = mapped_column(Boolean, default=True, server_default='true')
     appear_online: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

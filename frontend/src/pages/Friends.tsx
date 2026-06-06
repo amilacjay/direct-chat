@@ -24,10 +24,7 @@ export const Friends: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([
-      api.get<Friend[]>('/friends'),
-      api.get<FriendRequest[]>('/friends/requests'),
-    ])
+    Promise.all([api.get<Friend[]>('/friends'), api.get<FriendRequest[]>('/friends/requests')])
       .then(([f, r]) => {
         setFriends(f);
         setRequests(r);
@@ -41,10 +38,7 @@ export const Friends: React.FC = () => {
       await api.post(`/friends/accept/${reqId}`);
       const req = requests.find((r) => r.id === reqId);
       if (req) {
-        setFriends((prev) => [
-          ...prev,
-          { user: req.requester, friendship_id: reqId },
-        ]);
+        setFriends((prev) => [...prev, { user: req.requester, friendship_id: reqId }]);
       }
       setRequests((prev) => prev.filter((r) => r.id !== reqId));
       toast('Friend request accepted!', 'success');
@@ -76,39 +70,33 @@ export const Friends: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      <div className="flex h-full items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-accent" />
       </div>
     );
   }
 
+  const tabClass = (active: boolean) =>
+    `relative px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
+      active ? 'border-accent text-accent' : 'border-transparent text-ink-3 hover:text-ink-2'
+    }`;
+
   return (
-    <div className="max-w-lg mx-auto p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">Friends</h1>
+    <div className="mx-auto max-w-lg overflow-y-auto p-6">
+      <h1 className="font-display mb-4 text-2xl font-semibold tracking-tight text-ink">Friends</h1>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 mb-4">
-        <button
-          onClick={() => setActiveTab('friends')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'friends'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
+      <div className="mb-4 flex border-b border-line">
+        <button onClick={() => setActiveTab('friends')} className={tabClass(activeTab === 'friends')}>
           Friends ({friends.length})
         </button>
-        <button
-          onClick={() => setActiveTab('requests')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors relative ${
-            activeTab === 'requests'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
+        <button onClick={() => setActiveTab('requests')} className={tabClass(activeTab === 'requests')}>
           Requests
           {requests.length > 0 && (
-            <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">
+            <span
+              className="ml-1.5 inline-grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[11px] font-bold text-accent-ink"
+              style={{ background: 'var(--accent)' }}
+            >
               {requests.length}
             </span>
           )}
@@ -119,27 +107,27 @@ export const Friends: React.FC = () => {
       {activeTab === 'friends' && (
         <div className="space-y-2">
           {friends.length === 0 && (
-            <p className="text-gray-400 text-sm py-6 text-center">No friends yet. Say hi to someone online!</p>
+            <p className="py-6 text-center text-sm text-ink-4">No friends yet. Say hi to someone online!</p>
           )}
           {friends.map((f) => (
             <div
               key={f.friendship_id}
-              className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-colors"
+              className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 transition-colors hover:border-lineHi"
             >
               <Avatar src={f.user.avatar_url} name={f.user.display_name} size="sm" />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm text-gray-900 truncate">{f.user.display_name}</p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-ink">{f.user.display_name}</p>
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => navigate(`/app/chat/${f.user.id}`)}
-                  className="btn-secondary text-xs py-1 px-2"
+                  className="btn-secondary h-8 px-3 text-xs"
                 >
                   Chat
                 </button>
                 <button
                   onClick={() => handleUnfriend(f.user.id)}
-                  className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                  className="rounded-lg px-2 py-1 text-xs text-warn transition-colors hover:bg-surface2"
                 >
                   Unfriend
                 </button>
@@ -153,35 +141,28 @@ export const Friends: React.FC = () => {
       {activeTab === 'requests' && (
         <div className="space-y-2">
           {requests.length === 0 && (
-            <p className="text-gray-400 text-sm py-6 text-center">No pending friend requests</p>
+            <p className="py-6 text-center text-sm text-ink-4">No pending friend requests</p>
           )}
           {requests.map((req) => (
             <div
               key={req.id}
               data-testid="friend-request-item"
-              className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-200"
+              className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3"
             >
               <Avatar src={req.requester.avatar_url} name={req.requester.display_name} size="sm" />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm text-gray-900 truncate">
-                  {req.requester.display_name}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {new Date(req.created_at).toLocaleDateString()}
-                </p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-ink">{req.requester.display_name}</p>
+                <p className="text-xs text-ink-4">{new Date(req.created_at).toLocaleDateString()}</p>
               </div>
               <div className="flex gap-2">
                 <button
                   data-testid="accept-friend"
                   onClick={() => handleAccept(req.id)}
-                  className="btn-primary text-xs py-1 px-3"
+                  className="btn-primary h-8 px-3 text-xs"
                 >
                   Accept
                 </button>
-                <button
-                  onClick={() => handleDecline(req.id)}
-                  className="btn-secondary text-xs py-1 px-3"
-                >
+                <button onClick={() => handleDecline(req.id)} className="btn-secondary h-8 px-3 text-xs">
                   Decline
                 </button>
               </div>

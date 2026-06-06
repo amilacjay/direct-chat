@@ -80,6 +80,8 @@ async def websocket_endpoint(websocket: WebSocket):
     display_name: str = payload.get("name", "Guest" if is_guest else "User")
     appear_online: bool = True
     avatar_url: Optional[str] = None
+    gender: Optional[str] = None
+    age: Optional[int] = None
     db_user: Optional[User] = None
 
     if not is_guest:
@@ -95,6 +97,8 @@ async def websocket_endpoint(websocket: WebSocket):
                     display_name = db_user.display_name
                     appear_online = db_user.appear_online
                     avatar_url = db_user.avatar_url
+                    gender = db_user.gender if db_user.show_gender else None
+                    age = db_user.age if db_user.show_age else None
         except Exception:
             pass
 
@@ -104,7 +108,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
     try:
         if appear_online:
-            await set_online(uid, display_name, is_guest, avatar_url)
+            await set_online(uid, display_name, is_guest, avatar_url, gender, age)
             await manager.broadcast(
                 {
                     "type": "presence",
@@ -114,6 +118,8 @@ async def websocket_endpoint(websocket: WebSocket):
                             "id": uid,
                             "display_name": display_name,
                             "avatar_url": avatar_url,
+                            "gender": gender,
+                            "age": age,
                             "is_guest": is_guest,
                         },
                     },
@@ -195,7 +201,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 appear_online = new_appear
                 if new_appear:
-                    await set_online(uid, display_name, is_guest, avatar_url)
+                    await set_online(uid, display_name, is_guest, avatar_url, gender, age)
                     await manager.broadcast(
                         {
                             "type": "presence",
@@ -205,6 +211,8 @@ async def websocket_endpoint(websocket: WebSocket):
                                     "id": uid,
                                     "display_name": display_name,
                                     "avatar_url": avatar_url,
+                                    "gender": gender,
+                                    "age": age,
                                     "is_guest": is_guest,
                                 },
                             },

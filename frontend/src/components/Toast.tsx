@@ -25,21 +25,24 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, 3500);
   }, []);
 
-  const bgMap = {
-    success: 'bg-green-600',
-    error: 'bg-red-600',
-    info: 'bg-gray-800',
+  // Theme-aware accent stripe per toast type.
+  const accentMap: Record<ToastItem['type'], string> = {
+    success: 'var(--good)',
+    error: 'var(--warn)',
+    info: 'var(--accent)',
   };
 
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+      <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col gap-2">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`${bgMap[t.type]} text-white px-4 py-3 rounded-lg shadow-lg text-sm max-w-xs pointer-events-auto`}
+            className="pointer-events-auto flex max-w-xs items-center gap-2.5 rounded-2xl border border-line bg-surface px-4 py-3 text-sm text-ink shadow-float"
+            style={{ animation: 'floatUp .25s ease both' }}
           >
+            <span className="h-7 w-1 flex-shrink-0 rounded-full" style={{ background: accentMap[t.type] }} />
             {t.message}
           </div>
         ))}
