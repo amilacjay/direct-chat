@@ -10,8 +10,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application source
+# Copy application source and Alembic migrations
 COPY app/ ./app/
+COPY alembic/ ./alembic/
+COPY alembic.ini ./alembic.ini
 
 # Create the local avatar directory and hand ownership to the non-root user
 # so the app can write to it at runtime (lite-mode fallback when MinIO is down).

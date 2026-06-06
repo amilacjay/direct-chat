@@ -34,6 +34,24 @@ services:
     restart: unless-stopped
 
   # ------------------------------------------------------------------ #
+  # Migrate — run Alembic migrations on demand:                         #
+  #   docker compose run --rm migrate                                   #
+  # ------------------------------------------------------------------ #
+  migrate:
+    build: ./backend
+    command: alembic upgrade head
+    env_file: .env
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-chat}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-chatdb}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+    profiles:
+      - tools
+
+  # ------------------------------------------------------------------ #
   # Backend — FastAPI (REST + WebSocket)                                 #
   # ------------------------------------------------------------------ #
   backend:
