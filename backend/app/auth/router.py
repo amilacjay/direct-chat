@@ -101,7 +101,7 @@ async def google_callback(code: Optional[str] = None, db: AsyncSession = Depends
 
     if user is not None:
         # Existing user — issue real token
-        token = create_access_token(subject=str(user.id), is_guest=False)
+        token = create_access_token(subject=str(user.id), is_guest=False, extra={"name": user.display_name})
         return RedirectResponse(url=f"{frontend_cb}?token={token}&new=0")
 
     # New user — issue pending token for registration
@@ -150,7 +150,7 @@ async def complete_registration(
     result = await db.execute(select(User).where(User.google_sub == sub))
     existing = result.scalar_one_or_none()
     if existing is not None:
-        token = create_access_token(subject=str(existing.id), is_guest=False)
+        token = create_access_token(subject=str(existing.id), is_guest=False, extra={"name": existing.display_name})
         return TokenResponse(
             access_token=token,
             is_guest=False,
@@ -167,7 +167,7 @@ async def complete_registration(
     await db.commit()
     await db.refresh(user)
 
-    token = create_access_token(subject=str(user.id), is_guest=False)
+    token = create_access_token(subject=str(user.id), is_guest=False, extra={"name": user.display_name})
     return TokenResponse(
         access_token=token,
         is_guest=False,
@@ -220,7 +220,7 @@ async def dev_login(body: DevLoginRequest, db: AsyncSession = Depends(get_db)):
         await db.commit()
         await db.refresh(user)
 
-    token = create_access_token(subject=str(user.id), is_guest=False)
+    token = create_access_token(subject=str(user.id), is_guest=False, extra={"name": user.display_name})
     return TokenResponse(
         access_token=token,
         is_guest=False,

@@ -104,28 +104,30 @@ async def websocket_endpoint(websocket: WebSocket):
 
     uid = sub
 
-    await manager.connect(uid, websocket)
+    is_first_session = await manager.connect(uid, websocket)
 
     try:
         if appear_online:
+            # Always refresh presence data; only announce to others on first session.
             await set_online(uid, display_name, is_guest, avatar_url, gender, age)
-            await manager.broadcast(
-                {
-                    "type": "presence",
-                    "data": {
-                        "event": "join",
-                        "user": {
-                            "id": uid,
-                            "display_name": display_name,
-                            "avatar_url": avatar_url,
-                            "gender": gender,
-                            "age": age,
-                            "is_guest": is_guest,
+            if is_first_session:
+                await manager.broadcast(
+                    {
+                        "type": "presence",
+                        "data": {
+                            "event": "join",
+                            "user": {
+                                "id": uid,
+                                "display_name": display_name,
+                                "avatar_url": avatar_url,
+                                "gender": gender,
+                                "age": age,
+                                "is_guest": is_guest,
+                            },
                         },
                     },
-                },
-                exclude={uid},
-            )
+                    exclude={uid},
+                )
 
         # Send presence snapshot to this socket
         all_online = await list_online()
@@ -238,12 +240,13 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception:
         pass
     finally:
-        await manager.disconnect(uid)
-        await set_offline(uid)
-        await manager.broadcast(
-            {
-                "type": "presence",
-                "data": {"event": "leave", "id": uid},
-            },
-            exclude={uid},
-        )
+        is_last_session = await manager.disconnect(uid, websocket)
+        if is_last_session:
+            await set_offline(uid)
+            await manager.broadcast(
+                {
+                    "type": "presence",
+                    "data": {"event": "leave", "id": uid},
+                },
+                exclude={uid},
+            )
