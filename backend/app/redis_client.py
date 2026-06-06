@@ -1,4 +1,5 @@
 """Shared async Redis client and presence/rate-limit/photo-buffer helpers."""
+import json
 import time
 from typing import Optional
 
@@ -126,6 +127,44 @@ async def fetch_photo(token: str) -> Optional[dict]:
 async def delete_photo(token: str) -> None:
     r = get_redis()
     await r.delete(PHOTO_KEY.format(token=token))
+
+
+# ---- User profile cache ----
+USER_DATA_KEY = "user_data:{uid}"
+USER_DATA_TTL = 300  # 5 minutes
+
+
+async def get_cached_user_data(uid: str) -> Optional[dict]:
+    r = get_redis()
+    raw = await r.get(USER_DATA_KEY.format(uid=uid))
+    if raw is None:
+        return None
+    return json.loads(raw.decode() if isinstance(raw, bytes) else raw)
+
+
+async def set_cached_user_data(uid: str, user) -> None:
+    """Cache all profile fields from a User ORM object or CachedUser."""
+    r = get_redis()
+    data = {
+        "id": str(user.id),
+        "display_name": user.display_name,
+        "avatar_url": user.avatar_url,
+        "bio": user.bio,
+        "location": user.location,
+        "gender": user.gender,
+        "age": user.age,
+        "show_gender": user.show_gender,
+        "show_age": user.show_age,
+        "appear_online": user.appear_online,
+        "accent_hue": user.accent_hue,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+    }
+    await r.set(USER_DATA_KEY.format(uid=uid), json.dumps(data), ex=USER_DATA_TTL)
+
+
+async def invalidate_user_cache(uid: str) -> None:
+    r = get_redis()
+    await r.delete(USER_DATA_KEY.format(uid=uid))
 
 
 # ---- Rate limiting ----

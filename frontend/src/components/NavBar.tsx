@@ -54,16 +54,13 @@ export const NavBar: React.FC<NavBarProps> = ({
     wsClient.send({ type: 'presence_set', data: { appear_online: next } });
   };
 
-  const handleLogout = async () => {
-    try {
-      await api.post('/auth/logout');
-    } catch {
-      // ignore
-    }
+  const handleLogout = () => {
+    // Clear local state immediately — server logout is stateless, no need to wait.
     logout();
     useChatStore.getState().clearAll();
     wsClient.disconnect();
     navigate('/', { replace: true });
+    api.post('/auth/logout').catch(() => {});
   };
 
   return (

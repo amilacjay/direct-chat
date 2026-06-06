@@ -7,10 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.deps import Principal, get_current_principal, get_current_user
+from app.core.deps import Principal, get_current_principal, get_current_user, get_fresh_user
 from app.db.database import get_db
 from app.db.models import User
-from app.redis_client import list_online
+from app.redis_client import list_online, set_cached_user_data, invalidate_user_cache
 from app.schemas import VALID_GENDERS, OnlineUser, PublicUser, UpdateProfile
 from app.storage import save_avatar
 
@@ -90,7 +90,7 @@ async def get_me(principal: Principal = Depends(get_current_principal)):
 @router.patch("/me", response_model=PublicUser)
 async def update_me(
     body: UpdateProfile,
-    principal: Principal = Depends(get_current_user),
+    principal: Principal = Depends(get_fresh_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Update the current registered user's profile."""
@@ -135,13 +135,14 @@ async def update_me(
 
     await db.commit()
     await db.refresh(user)
+    await set_cached_user_data(str(user.id), user)
     return _user_to_public(user, for_self=True)
 
 
 @router.post("/me/avatar", response_model=PublicUser)
 async def upload_avatar(
     file: UploadFile,
-    principal: Principal = Depends(get_current_user),
+    principal: Principal = Depends(get_fresh_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Upload a new avatar image for the current user."""
@@ -167,6 +168,7 @@ async def upload_avatar(
     user.avatar_url = url
     await db.commit()
     await db.refresh(user)
+    await set_cached_user_data(str(user.id), user)
     return _user_to_public(user, for_self=True)
 
 
@@ -178,6 +180,8 @@ async def get_user(
 ):
     """Fetch a user's public profile by ID."""
     import uuid as _uuid
+    from app.core.deps import CachedUser
+    from app.redis_client import get_cached_user_data
 
     # Guest IDs are not stored in DB
     if user_id.startswith("guest:"):
@@ -188,9 +192,15 @@ async def get_user(
     except ValueError:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Check cache before hitting DB
+    cached = await get_cached_user_data(user_id)
+    if cached:
+        return _user_to_public(CachedUser.from_dict(cached))
+
     result = await db.execute(select(User).where(User.id == uid))
     user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
+    await set_cached_user_data(user_id, user)
     return _user_to_public(user)
