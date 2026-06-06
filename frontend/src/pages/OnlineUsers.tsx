@@ -245,7 +245,7 @@ export const OnlineUsers: React.FC<Props> = ({ collapsed = false, onToggle }) =>
 
       {/* Me footer */}
       {me && (
-        <footer className="flex items-center gap-3 border-t border-line px-4 py-3">
+        <footer className="flex items-center gap-3 border-t border-line px-4 py-3" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
           <Avatar src={me.avatar_url} name={me.display_name} size="sm" ring />
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-semibold text-ink">{me.display_name}</div>

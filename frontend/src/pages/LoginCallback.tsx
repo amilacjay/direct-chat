@@ -68,7 +68,7 @@ export const LoginCallback: React.FC = () => {
   // Shared full-screen shell with the Direct backdrop.
   const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div
-      className="relative flex min-h-screen items-center justify-center overflow-hidden p-4"
+      className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden p-4"
       style={{ background: 'radial-gradient(140% 100% at 50% -10%, var(--bg-2), var(--bg) 55%)' }}
     >
       <div

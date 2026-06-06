@@ -82,7 +82,7 @@ export const AppLayout: React.FC = () => {
   if (!token) return null;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-bg text-ink">
       <NavBar
         notifications={notifications}
         unreadCount={unreadCount}

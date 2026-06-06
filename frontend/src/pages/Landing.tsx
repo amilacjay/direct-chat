@@ -106,7 +106,7 @@ export const Landing: React.FC = () => {
 
   return (
     <div
-      className="relative min-h-screen overflow-y-auto"
+      className="relative min-h-[100dvh] overflow-y-auto"
       style={{ background: 'radial-gradient(140% 100% at 50% -10%, var(--bg-2), var(--bg) 55%)' }}
     >
       {/* Background grid + aura */}

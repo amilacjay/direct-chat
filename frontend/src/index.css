@@ -76,6 +76,7 @@
   }
   body {
     @apply bg-bg text-ink font-sans antialiased;
+    overscroll-behavior: none;
   }
   ::selection {
     background: var(--accent-soft);

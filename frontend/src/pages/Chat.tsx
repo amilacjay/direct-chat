@@ -326,7 +326,7 @@ export const Chat: React.FC = () => {
       </div>
 
       {/* Composer */}
-      <div className="flex-shrink-0 px-3.5 pb-3.5 pt-2.5">
+      <div className="flex-shrink-0 px-3.5 pt-2.5" style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}>
         {photoError && <p className="mb-2 text-xs text-warn">{photoError}</p>}
         <div className="flex items-end gap-2 rounded-3xl border border-line bg-surface p-1.5 shadow-soft">
           {isGuest ? (
