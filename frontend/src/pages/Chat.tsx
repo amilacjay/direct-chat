@@ -359,7 +359,7 @@ export const Chat: React.FC = () => {
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Message — disappears when you leave"
-            className="flex-1 border-none bg-transparent px-1 py-2.5 text-[15px] text-ink outline-none placeholder:text-ink-4"
+            className="flex-1 border-none bg-transparent px-1 py-2.5 text-base text-ink outline-none placeholder:text-ink-4"
           />
 
           <button
