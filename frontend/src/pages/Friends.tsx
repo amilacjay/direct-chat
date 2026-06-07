@@ -135,7 +135,7 @@ export const Friends: React.FC = () => {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => navigate(`/app/chat/${f.user.id}`)}
+                  onClick={() => navigate(`/app/chat/${f.user.id}`, { state: { peer: f.user } })}
                   className="btn-secondary h-8 px-3 text-xs"
                 >
                   Chat

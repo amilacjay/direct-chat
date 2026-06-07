@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { wsClient } from '../lib/websocket';
 import { peerManager } from '../lib/webrtc';
@@ -22,6 +22,7 @@ const NO_MESSAGES: ChatMessage[] = [];
 export const Chat: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isGuest } = useAuthStore();
 
   const messages = useChatStore((s) => (userId ? s.conversations[userId] : undefined)) ?? NO_MESSAGES;
@@ -68,11 +69,26 @@ export const Chat: React.FC = () => {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
-  // Fetch peer user info
+  // Fetch peer user info. Seed instantly from navigation state (so the header
+  // never lingers on the previously-open chat, and guests — whose profiles
+  // aren't stored server-side — still show a name), then refine from the API.
   useEffect(() => {
     if (!userId) return;
-    api.get<PublicUser>(`/users/${userId}`).then(setPeer).catch(() => {});
-  }, [userId]);
+    const seeded = (location.state as { peer?: PublicUser } | null)?.peer;
+    setPeer(seeded && seeded.id === userId ? seeded : null);
+    // Guest profiles aren't in the DB (the endpoint 404s); the seed is all we get.
+    if (userId.startsWith('guest:')) return;
+    let cancelled = false;
+    api
+      .get<PublicUser>(`/users/${userId}`)
+      .then((u) => {
+        if (!cancelled) setPeer(u);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, location.state]);
 
   // Mark this conversation active while on screen.
   useEffect(() => {

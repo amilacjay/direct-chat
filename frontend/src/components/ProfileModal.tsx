@@ -41,7 +41,7 @@ export const ProfileModal: React.FC<Props> = ({ userId, onClose }) => {
   };
 
   const handleMessage = () => {
-    navigate(`/app/chat/${userId}`);
+    navigate(`/app/chat/${userId}`, profile ? { state: { peer: profile } } : undefined);
     onClose();
   };
 

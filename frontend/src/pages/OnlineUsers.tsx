@@ -158,7 +158,7 @@ export const OnlineUsers: React.FC<Props> = ({ collapsed = false, onToggle }) =>
                   key={f.friendship_id}
                   data-testid="user-item"
                   className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-surface2 ${activeChatId === f.user.id ? 'bg-surface2 ring-1 ring-inset ring-line' : ''}`}
-                  onClick={() => navigate(`/app/chat/${f.user.id}`)}
+                  onClick={() => navigate(`/app/chat/${f.user.id}`, { state: { peer: f.user } })}
                 >
                   <div
                     className="relative flex-shrink-0"
@@ -194,7 +194,7 @@ export const OnlineUsers: React.FC<Props> = ({ collapsed = false, onToggle }) =>
             key={u.id}
             data-testid="user-item"
             className={`group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-surface2 ${activeChatId === u.id ? 'bg-surface2 ring-1 ring-inset ring-line' : ''}`}
-            onClick={() => navigate(`/app/chat/${u.id}`)}
+            onClick={() => navigate(`/app/chat/${u.id}`, { state: { peer: u } })}
           >
             <div
               className="relative flex-shrink-0"
