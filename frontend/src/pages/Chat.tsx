@@ -34,6 +34,7 @@ export const Chat: React.FC = () => {
   const [webrtcOpen, setWebrtcOpen] = useState(false);
   const [webrtcFailed, setWebrtcFailed] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -199,6 +200,14 @@ export const Chat: React.FC = () => {
     e.target.value = '';
   };
 
+  // Close the photo lightbox on Escape.
+  useEffect(() => {
+    if (!previewPhoto) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setPreviewPhoto(null);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [previewPhoto]);
+
   const formatTime = (ts: number) =>
     new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -296,7 +305,12 @@ export const Chat: React.FC = () => {
                   }}
                 >
                   {msg.photoUrl ? (
-                    <img src={msg.photoUrl} alt="Shared" className="max-h-64 max-w-full rounded-2xl object-cover" />
+                    <img
+                      src={msg.photoUrl}
+                      alt="Shared"
+                      onClick={() => setPreviewPhoto(msg.photoUrl!)}
+                      className="max-h-64 max-w-full cursor-zoom-in rounded-2xl object-cover"
+                    />
                   ) : (
                     <p className="whitespace-pre-wrap">{msg.text}</p>
                   )}
@@ -385,6 +399,31 @@ export const Chat: React.FC = () => {
 
     {showProfile && userId && (
       <ProfileModal userId={userId} onClose={() => setShowProfile(false)} />
+    )}
+
+    {previewPhoto && (
+      <div
+        data-testid="photo-preview"
+        onClick={() => setPreviewPhoto(null)}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      >
+        <button
+          onClick={() => setPreviewPhoto(null)}
+          aria-label="Close preview"
+          className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+          style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+            <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
+          </svg>
+        </button>
+        <img
+          src={previewPhoto}
+          alt="Preview"
+          onClick={(e) => e.stopPropagation()}
+          className="max-h-full max-w-full rounded-2xl object-contain"
+        />
+      </div>
     )}
     </>
   );

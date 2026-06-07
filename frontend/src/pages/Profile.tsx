@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import { Avatar } from '../components/Avatar';
 import { useToast } from '../components/Toast';
-import type { PublicUser } from '../lib/types';
+import type { PublicUser, TokenResponse } from '../lib/types';
 
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024; // 2 MB
 
@@ -17,7 +17,7 @@ const GENDER_OPTIONS = [
 ];
 
 export const Profile: React.FC = () => {
-  const { user, isGuest, setUser } = useAuthStore();
+  const { user, isGuest, setUser, login } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,12 +32,7 @@ export const Profile: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState('');
-
-  useEffect(() => {
-    if (isGuest) {
-      navigate('/app', { replace: true });
-    }
-  }, [isGuest, navigate]);
+  const [removingAvatar, setRemovingAvatar] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -59,6 +54,18 @@ export const Profile: React.FC = () => {
       if (ageNum !== null && (isNaN(ageNum) || ageNum < 1 || ageNum > 120)) {
         toast('Age must be between 1 and 120', 'error');
         setSaving(false);
+        return;
+      }
+      if (isGuest) {
+        // Guests have no DB record — the backend re-issues the token with the
+        // new claims and we swap it in, which reconnects presence automatically.
+        const resp = await api.patch<TokenResponse>('/auth/guest', {
+          display_name: displayName,
+          gender: gender || null,
+          age: ageNum,
+        });
+        login(resp.access_token, resp.user, true);
+        toast('Profile saved!', 'success');
         return;
       }
       const updated = await api.patch<PublicUser>('/users/me', {
@@ -121,6 +128,22 @@ export const Profile: React.FC = () => {
     e.target.value = '';
   };
 
+  const handleRemoveAvatar = async () => {
+    setAvatarError('');
+    setRemovingAvatar(true);
+    try {
+      const updated = await api.delete<PublicUser>('/users/me/avatar');
+      setUser(updated);
+      setAvatarPreview(null);
+      toast('Avatar removed', 'success');
+    } catch {
+      setAvatarError('Failed to remove avatar');
+      toast('Failed to remove avatar', 'error');
+    } finally {
+      setRemovingAvatar(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -142,40 +165,61 @@ export const Profile: React.FC = () => {
     <div className="mx-auto max-w-lg p-6" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
       <h1 className="font-display mb-6 hidden text-2xl font-semibold tracking-tight text-ink md:block">Profile</h1>
 
-      {/* Avatar */}
-      <div className="mb-6 flex items-center gap-4">
-        <div className="group relative">
-          <Avatar
-            src={avatarPreview ?? user.avatar_url}
-            name={user.display_name}
-            size="lg"
-            className="cursor-pointer"
-            ring
-          />
-          <div
-            onClick={handleAvatarClick}
-            className="absolute inset-0 grid cursor-pointer place-items-center rounded-[22px] bg-black/45 opacity-0 transition-opacity group-hover:opacity-100"
-          >
-            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-              />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+      {/* Avatar — registered users only (guests have no stored profile picture) */}
+      {!isGuest && (
+        <div className="mb-6 flex items-center gap-4">
+          <div className="group relative">
+            <Avatar
+              src={avatarPreview ?? user.avatar_url}
+              name={user.display_name}
+              size="lg"
+              className="cursor-pointer"
+              ring
+            />
+            <div
+              onClick={handleAvatarClick}
+              className="absolute inset-0 grid cursor-pointer place-items-center rounded-[22px] bg-black/45 opacity-0 transition-opacity group-hover:opacity-100"
+            >
+              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </div>
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+          <div>
+            <p className="font-semibold text-ink">{user.display_name}</p>
+            <div className="flex items-center gap-3">
+              <button onClick={handleAvatarClick} className="text-sm text-accent hover:underline">
+                Change avatar
+              </button>
+              {user.avatar_url && (
+                <button
+                  data-testid="remove-avatar"
+                  onClick={handleRemoveAvatar}
+                  disabled={removingAvatar}
+                  className="text-sm text-warn hover:underline disabled:opacity-50"
+                >
+                  {removingAvatar ? 'Removing…' : 'Remove'}
+                </button>
+              )}
+            </div>
+            {avatarError && <p className="mt-1 text-xs text-warn">{avatarError}</p>}
+          </div>
         </div>
-        <div>
-          <p className="font-semibold text-ink">{user.display_name}</p>
-          <button onClick={handleAvatarClick} className="text-sm text-accent hover:underline">
-            Change avatar
-          </button>
-          {avatarError && <p className="mt-1 text-xs text-warn">{avatarError}</p>}
+      )}
+
+      {isGuest && (
+        <div className="mb-6 rounded-2xl border border-accent-line bg-accent-soft p-4 text-[13px] leading-relaxed text-ink-2">
+          You’re browsing as a guest. Your display name, gender and age are kept only for
+          this session — they vanish when you leave.
         </div>
-      </div>
+      )}
 
       {/* Form */}
       <form onSubmit={handleSave} className="space-y-4">
@@ -198,30 +242,34 @@ export const Profile: React.FC = () => {
           <p className="mt-1 text-xs text-ink-4">3–30 chars, letters, numbers, spaces, _ or -</p>
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-ink-2">Bio</label>
-          <textarea
-            data-testid="bio-input"
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            rows={3}
-            maxLength={200}
-            className="input resize-none py-2.5"
-            placeholder="Tell others a bit about yourself"
-          />
-        </div>
+        {!isGuest && (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ink-2">Bio</label>
+            <textarea
+              data-testid="bio-input"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              rows={3}
+              maxLength={200}
+              className="input resize-none py-2.5"
+              placeholder="Tell others a bit about yourself"
+            />
+          </div>
+        )}
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-ink-2">Location</label>
-          <input
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            maxLength={100}
-            className="input"
-            placeholder="City, Country"
-          />
-        </div>
+        {!isGuest && (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ink-2">Location</label>
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              maxLength={100}
+              className="input"
+              placeholder="City, Country"
+            />
+          </div>
+        )}
 
         {/* Gender */}
         <div>
@@ -233,7 +281,7 @@ export const Profile: React.FC = () => {
               </option>
             ))}
           </select>
-          {gender && (
+          {!isGuest && gender && (
             <label className="mt-2 flex cursor-pointer select-none items-center gap-2">
               <input
                 type="checkbox"
@@ -258,7 +306,7 @@ export const Profile: React.FC = () => {
             className="input"
             placeholder="Your age"
           />
-          {age.trim() !== '' && (
+          {!isGuest && age.trim() !== '' && (
             <label className="mt-2 flex cursor-pointer select-none items-center gap-2">
               <input
                 type="checkbox"

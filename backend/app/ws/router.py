@@ -101,6 +101,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     age = db_user.age if db_user.show_age else None
         except Exception:
             pass
+    else:
+        # Guests carry their (optional) gender/age in the token claims.
+        gender = payload.get("gender")
+        age = payload.get("age")
 
     uid = sub
 

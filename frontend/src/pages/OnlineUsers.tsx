@@ -210,7 +210,9 @@ export const OnlineUsers: React.FC<Props> = ({ collapsed = false, onToggle }) =>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[15px] font-semibold text-ink">{u.display_name}</p>
               {u.is_guest
-                ? <p className="text-xs text-ink-3">Guest · anonymous</p>
+                ? (u.gender || u.age)
+                  ? <UserMeta gender={u.gender} age={u.age} status="Guest" />
+                  : <p className="text-xs text-ink-3">Guest · anonymous</p>
                 : <UserMeta gender={u.gender} age={u.age} status="Online now" />
               }
             </div>

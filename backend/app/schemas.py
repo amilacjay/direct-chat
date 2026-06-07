@@ -28,6 +28,13 @@ class CompleteRegistrationRequest(BaseModel):
     dob: str  # ISO date YYYY-MM-DD
 
 
+class GuestProfileUpdate(BaseModel):
+    """Guest-editable profile fields. Re-issues the guest token with new claims."""
+    display_name: Optional[str] = Field(default=None, min_length=3, max_length=30)
+    gender: Optional[str] = Field(default=None, max_length=20)
+    age: Optional[int] = Field(default=None, ge=1, le=120)
+
+
 # ---- Users ----
 class PublicUser(BaseModel):
     id: str

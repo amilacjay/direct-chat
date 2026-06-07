@@ -178,6 +178,18 @@ export const NavBar: React.FC<NavBarProps> = ({
 
         {profileMenuOpen && (
           <div className="absolute right-0 top-full mt-1 w-52 overflow-hidden rounded-2xl border border-line bg-surface py-1 text-sm shadow-float">
+            {isGuest && (
+              <>
+                <Link
+                  to="/app/profile"
+                  onClick={() => setProfileMenuOpen(false)}
+                  className="block px-4 py-3 text-ink-2 hover:bg-surface2"
+                >
+                  Edit profile
+                </Link>
+                <div className="my-1 border-t border-line" />
+              </>
+            )}
             {!isGuest && (
               <>
                 <Link

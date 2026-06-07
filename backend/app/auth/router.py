@@ -1,4 +1,5 @@
 """Auth router: Google OAuth2, guest login, dev login, registration completion."""
+import re
 import uuid
 from datetime import date
 from typing import Optional
@@ -12,15 +13,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.security import (
     create_access_token,
+    decode_token,
     decrypt_field,
     encrypt_field,
     is_adult,
 )
 from app.db.database import get_db
 from app.db.models import User
-from app.schemas import CompleteRegistrationRequest, DevLoginRequest, PublicUser, TokenResponse
+from app.schemas import (
+    CompleteRegistrationRequest,
+    DevLoginRequest,
+    GuestProfileUpdate,
+    PublicUser,
+    TokenResponse,
+    VALID_GENDERS,
+)
 
 router = APIRouter()
+
+_DISPLAY_NAME_RE = re.compile(r"^[A-Za-z0-9 _-]{3,30}$")
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -125,7 +136,6 @@ async def complete_registration(
 
     raw_token = authorization.split(" ", 1)[1].strip()
 
-    from app.core.security import decode_token
     try:
         payload = decode_token(raw_token)
     except ValueError:
@@ -189,6 +199,76 @@ async def guest_login():
         access_token=token,
         is_guest=True,
         user=PublicUser(id=guest_id, display_name=display_name, is_guest=True),
+    )
+
+
+@router.patch("/guest", response_model=TokenResponse)
+async def update_guest(
+    body: GuestProfileUpdate,
+    authorization: Optional[str] = Header(default=None),
+):
+    """Update a guest's display name, gender and age by re-issuing the token.
+
+    Guests have no DB record — their profile lives entirely in the JWT claims,
+    so the only way to change it is to mint a fresh token with the same subject.
+    """
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+
+    raw_token = authorization.split(" ", 1)[1].strip()
+    try:
+        payload = decode_token(raw_token)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    if not payload.get("guest"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a guest session")
+
+    sub: str = payload.get("sub", "")
+    if not sub:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject")
+
+    # Carry forward existing claims, overriding only what was sent.
+    display_name: str = payload.get("name", "Guest")
+    if body.display_name is not None:
+        name = body.display_name.strip()
+        if not _DISPLAY_NAME_RE.match(name):
+            raise HTTPException(
+                status_code=400,
+                detail="display_name must be 3-30 chars, only letters, numbers, spaces, _ and -",
+            )
+        display_name = name
+
+    gender: Optional[str] = payload.get("gender")
+    if "gender" in body.model_fields_set:
+        if body.gender and body.gender not in VALID_GENDERS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"gender must be one of: {', '.join(sorted(VALID_GENDERS))}",
+            )
+        gender = body.gender or None
+
+    age: Optional[int] = payload.get("age")
+    if "age" in body.model_fields_set:
+        age = body.age
+
+    extra: dict = {"name": display_name}
+    if gender:
+        extra["gender"] = gender
+    if age is not None:
+        extra["age"] = age
+
+    token = create_access_token(subject=sub, is_guest=True, extra=extra)
+    return TokenResponse(
+        access_token=token,
+        is_guest=True,
+        user=PublicUser(
+            id=sub,
+            display_name=display_name,
+            gender=gender,
+            age=age,
+            is_guest=True,
+        ),
     )
 
 

@@ -60,6 +60,12 @@ export interface UpdateProfile {
   accent_hue?: number | null;
 }
 
+export interface GuestProfileUpdate {
+  display_name?: string;
+  gender?: string | null;
+  age?: number | null;
+}
+
 export interface IceServer {
   urls: string | string[];
   username?: string;

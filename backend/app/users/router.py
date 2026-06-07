@@ -69,6 +69,8 @@ async def get_online_users(principal: Principal = Depends(get_current_principal)
                 id=item["id"],
                 display_name=item["display_name"],
                 avatar_url=item.get("avatar_url"),
+                gender=item.get("gender"),
+                age=item.get("age"),
                 is_guest=item.get("is_guest", False),
             )
         )
@@ -166,6 +168,20 @@ async def upload_avatar(
 
     user = principal.user
     user.avatar_url = url
+    await db.commit()
+    await db.refresh(user)
+    await set_cached_user_data(str(user.id), user)
+    return _user_to_public(user, for_self=True)
+
+
+@router.delete("/me/avatar", response_model=PublicUser)
+async def delete_avatar(
+    principal: Principal = Depends(get_fresh_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Clear the current user's avatar, falling back to the generated initials."""
+    user = principal.user
+    user.avatar_url = None
     await db.commit()
     await db.refresh(user)
     await set_cached_user_data(str(user.id), user)
