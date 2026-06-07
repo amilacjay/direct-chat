@@ -52,6 +52,28 @@ services:
       - tools
 
   # ------------------------------------------------------------------ #
+  # Adminer — web DB browser for admin use (opt-in via `tools` profile) #
+  #   docker compose --profile tools up -d adminer                      #
+  # Bound to 127.0.0.1 only: reach it via an SSH tunnel, never exposed  #
+  # to the public internet.                                             #
+  # ------------------------------------------------------------------ #
+  adminer:
+    image: adminer:latest
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DEFAULT_DB: "${POSTGRES_DB:-chatdb}"
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: unless-stopped
+    profiles:
+      - tools
+
+  # ------------------------------------------------------------------ #
   # Backend — FastAPI (REST + WebSocket)                                 #
   # ------------------------------------------------------------------ #
   backend:
