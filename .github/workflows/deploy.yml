@@ -1,0 +1,67 @@
+name: Deploy
+
+# Deploys the Docker Compose stack to the production server over SSH.
+# Triggers on every push to main, or manually from the Actions tab.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never let two deploys overlap; a newer push cancels an in-flight one.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST || '156.67.27.54' }}
+          username: ${{ secrets.DEPLOY_USER || 'deploy' }}
+          password: ${{ secrets.DEPLOY_SSH_PASSWORD }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          # Fail the job on any non-zero command instead of silently continuing.
+          script_stop: true
+          command_timeout: 30m
+          script: |
+            set -euo pipefail
+
+            APP_DIR="/home/deploy/apps/direct-chat"
+            BRANCH="main"
+
+            cd "$APP_DIR"
+
+            # Refuse to deploy without the server-side secrets file present.
+            if [ ! -f .env ]; then
+              echo "ERROR: $APP_DIR/.env is missing. Create it from .env.example before deploying." >&2
+              exit 1
+            fi
+
+            echo "==> Syncing code to origin/$BRANCH"
+            git fetch --prune origin "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+
+            # Use the v2 compose plugin if available, otherwise legacy docker-compose.
+            if docker compose version >/dev/null 2>&1; then
+              DC="docker compose"
+            else
+              DC="docker-compose"
+            fi
+
+            echo "==> Building images"
+            $DC build
+
+            echo "==> Running database migrations"
+            $DC run --rm migrate
+
+            echo "==> Starting / updating services"
+            $DC up -d --remove-orphans
+
+            echo "==> Pruning dangling images"
+            docker image prune -f
+
+            echo "==> Deployed. Service status:"
+            $DC ps
