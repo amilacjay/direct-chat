@@ -11,6 +11,7 @@ import { ConnPill, type ConnState } from '../components/ConnPill';
 import { GuestOnlyDisabled } from '../components/GuestOnlyDisabled';
 import { GenderIcon, genderColor } from '../components/GenderIcon';
 import { ProfileModal } from '../components/ProfileModal';
+import { EmojiPicker } from '../components/EmojiPicker';
 import type { ChatMessage } from '../store/chat';
 import type { PublicUser } from '../lib/types';
 
@@ -36,10 +37,13 @@ export const Chat: React.FC = () => {
   const [webrtcFailed, setWebrtcFailed] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
+  const [showEmoji, setShowEmoji] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const emojiBtnRef = useRef<HTMLButtonElement>(null);
   const offerStarted = useRef(false);
 
   // --- Robust auto-scroll to bottom (no scrollIntoView): pin on content growth. ---
@@ -157,6 +161,23 @@ export const Chat: React.FC = () => {
 
     addMessage(userId, { text, ts, fromMe: true, relayed, delivered: true });
     setInputText('');
+  };
+
+  // Insert an emoji at the caret (or replace the current selection), keeping
+  // the input focused and the cursor just after the inserted glyph.
+  const insertEmoji = (emoji: string) => {
+    const input = inputRef.current;
+    const start = input?.selectionStart ?? inputText.length;
+    const end = input?.selectionEnd ?? inputText.length;
+    const next = inputText.slice(0, start) + emoji + inputText.slice(end);
+    setInputText(next);
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (!el) return;
+      el.focus();
+      const pos = start + emoji.length;
+      el.setSelectionRange(pos, pos);
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -383,6 +404,7 @@ export const Chat: React.FC = () => {
           )}
 
           <input
+            ref={inputRef}
             data-testid="chat-input"
             type="text"
             value={inputText}
@@ -391,6 +413,30 @@ export const Chat: React.FC = () => {
             placeholder="Message — disappears when you leave"
             className="flex-1 border-none bg-transparent px-1 py-2.5 text-base text-ink outline-none placeholder:text-ink-4"
           />
+
+          <div className="relative flex-shrink-0">
+            <button
+              ref={emojiBtnRef}
+              type="button"
+              data-testid="emoji-btn"
+              onClick={() => setShowEmoji((v) => !v)}
+              title="Add emoji"
+              aria-label="Add emoji"
+              aria-expanded={showEmoji}
+              className={`grid h-11 w-11 place-items-center rounded-2xl transition-colors hover:bg-surface2 ${
+                showEmoji ? 'text-accent' : 'text-ink-3'
+              }`}
+            >
+              <EmojiIcon />
+            </button>
+            {showEmoji && (
+              <EmojiPicker
+                anchorRef={emojiBtnRef}
+                onClose={() => setShowEmoji(false)}
+                onSelect={insertEmoji}
+              />
+            )}
+          </div>
 
           <button
             data-testid="chat-send"
@@ -444,6 +490,14 @@ export const Chat: React.FC = () => {
     </>
   );
 };
+
+const EmojiIcon: React.FC = () => (
+  <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={2} />
+    <path d="M8.5 14.5s1.3 1.7 3.5 1.7 3.5-1.7 3.5-1.7" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9 9.5h.01M15 9.5h.01" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 const PhotoIcon: React.FC = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
