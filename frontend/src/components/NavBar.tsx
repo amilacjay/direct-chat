@@ -237,6 +237,9 @@ export const NavBar: React.FC<NavBarProps> = ({
             >
               Log out
             </button>
+            <div className="mono border-t border-line px-4 py-2 text-[10px] tracking-wide text-ink-4">
+              v{__APP_VERSION__}
+            </div>
           </div>
         )}
       </div>

@@ -44,6 +44,11 @@ jobs:
             git fetch --prune origin "$BRANCH"
             git reset --hard "origin/$BRANCH"
 
+            # Stamp the frontend build with this commit's short sha so each push
+            # ships an identifiable version that auto-rolls out to clients.
+            export APP_VERSION="$(git rev-parse --short HEAD)"
+            echo "==> Deploying version $APP_VERSION"
+
             # Use the v2 compose plugin if available, otherwise legacy docker-compose.
             if docker compose version >/dev/null 2>&1; then
               DC="docker compose"

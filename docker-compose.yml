@@ -28,7 +28,11 @@ services:
   # Frontend — React SPA served by nginx:alpine                         #
   # ------------------------------------------------------------------ #
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        # Git short sha from the deploy workflow; "dev" for plain local builds.
+        VITE_APP_VERSION: "${APP_VERSION:-dev}"
     networks:
       - internal
     restart: unless-stopped

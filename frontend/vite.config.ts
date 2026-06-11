@@ -2,11 +2,27 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Minimal ambient typing so the config compiles without @types/node.
+declare const process: { env: Record<string, string | undefined> };
+
+// Build version: set by CI/deploy (VITE_APP_VERSION = git short sha) so every
+// push to main produces a distinct, identifiable build that auto-rolls out to
+// clients. Plain local builds get "dev".
+const APP_VERSION = process.env.VITE_APP_VERSION || 'dev';
+const BUILD_TIME = new Date().toISOString();
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+    __BUILD_TIME__: JSON.stringify(BUILD_TIME),
+  },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // We register the service worker ourselves (src/main.tsx) so we can poll
+      // for new builds and reload clients onto the latest version.
+      injectRegister: false,
       includeAssets: ['favicon.ico', 'icon.svg', 'apple-touch-icon-180x180.png'],
 
       manifest: {
