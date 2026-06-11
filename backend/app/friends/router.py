@@ -39,6 +39,31 @@ def _notification_to_out(n: Notification) -> NotificationOut:
     )
 
 
+async def are_friends(db: AsyncSession, a_id: str, b_id: str) -> bool:
+    """True if there's an accepted friendship between a and b (either direction).
+
+    Used by the albums router to gate friends-only media. Returns False for any
+    non-UUID id (e.g. guest ids), which never have DB friendships.
+    """
+    if a_id == b_id:
+        return True
+    try:
+        a = uuid.UUID(a_id)
+        b = uuid.UUID(b_id)
+    except (ValueError, TypeError):
+        return False
+    result = await db.execute(
+        select(Friendship.id).where(
+            Friendship.status == "accepted",
+            or_(
+                and_(Friendship.requester_id == a, Friendship.addressee_id == b),
+                and_(Friendship.requester_id == b, Friendship.addressee_id == a),
+            ),
+        )
+    )
+    return result.first() is not None
+
+
 async def _get_user_by_id(db: AsyncSession, user_id: str) -> User:
     """Resolve a user_id string to a User or raise 404."""
     try:

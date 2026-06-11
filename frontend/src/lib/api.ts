@@ -72,6 +72,12 @@ export const api = {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }),
 
+  put: <T>(path: string, body?: unknown) =>
+    request<T>(path, {
+      method: 'PUT',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
+
   delete: <T>(path: string) =>
     request<T>(path, { method: 'DELETE' }),
 
@@ -84,6 +90,9 @@ export const api = {
       },
       overrideToken
     ),
+
+  putForm: <T>(path: string, formData: FormData) =>
+    request<T>(path, { method: 'PUT', body: formData }),
 
   getBlob: async (path: string): Promise<Blob> => {
     const token = useAuthStore.getState().token;

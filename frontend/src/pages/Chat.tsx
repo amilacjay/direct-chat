@@ -12,8 +12,11 @@ import { GuestOnlyDisabled } from '../components/GuestOnlyDisabled';
 import { GenderIcon, genderColor } from '../components/GenderIcon';
 import { ProfileModal } from '../components/ProfileModal';
 import { EmojiPicker } from '../components/EmojiPicker';
+import { AlbumGallery } from '../components/AlbumGallery';
+import { AlbumImg } from '../components/AlbumImg';
+import { albumsApi } from '../lib/albums';
 import type { ChatMessage } from '../store/chat';
-import type { PublicUser } from '../lib/types';
+import type { PublicUser, PublicAlbums } from '../lib/types';
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5 MB
 
@@ -38,6 +41,8 @@ export const Chat: React.FC = () => {
   const [photoError, setPhotoError] = useState('');
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [peerAlbums, setPeerAlbums] = useState<PublicAlbums | null>(null);
+  const [galleryOpen, setGalleryOpen] = useState(true);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -93,6 +98,24 @@ export const Chat: React.FC = () => {
       cancelled = true;
     };
   }, [userId, location.state]);
+
+  // Load the peer's albums + background (friends-only; returns can_view=false
+  // and empty otherwise, so non-friends see the chat exactly as before).
+  useEffect(() => {
+    if (!userId) return;
+    setPeerAlbums(null);
+    setGalleryOpen(true);
+    let cancelled = false;
+    albumsApi
+      .userAlbums(userId)
+      .then((res) => {
+        if (!cancelled) setPeerAlbums(res);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   // Mark this conversation active while on screen.
   useEffect(() => {
@@ -252,12 +275,27 @@ export const Chat: React.FC = () => {
 
   const connState: ConnState = webrtcOpen ? 'p2p' : webrtcFailed ? 'relay' : 'connecting';
 
+  // Friends-only decorations: the peer's background behind the thread and their
+  // albums in a collapsible top panel. Empty/absent for non-friends.
+  const canViewAlbums = !!peerAlbums?.can_view;
+  const hasGallery = canViewAlbums && !!peerAlbums?.albums.some((a) => a.images.length > 0);
+  const hasBg = canViewAlbums && !!peerAlbums?.has_background;
+  const bgPath = hasBg ? albumsApi.backgroundPath(userId) : null;
+
   return (
     <>
-    <div className="flex h-full flex-col bg-bg">
+    <div className="relative flex h-full flex-col overflow-hidden bg-bg">
+      {/* Peer's chat background (friends only) */}
+      {bgPath && (
+        <>
+          <AlbumImg path={bgPath} className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
+          <div className="pointer-events-none absolute inset-0 bg-bg/72" />
+        </>
+      )}
+
       {/* Header */}
       <header
-        className="z-10 flex flex-shrink-0 items-center gap-3 border-b border-line px-4 py-3"
+        className="relative z-10 flex flex-shrink-0 items-center gap-3 border-b border-line px-4 py-3"
         style={{ background: 'color-mix(in oklch, var(--bg) 80%, transparent)', backdropFilter: 'blur(12px)' }}
       >
         <button
@@ -300,8 +338,24 @@ export const Chat: React.FC = () => {
         <ConnPill state={connState} />
       </header>
 
+      {/* Peer's albums — collapsible top panel (friends only) */}
+      {hasGallery && peerAlbums && (
+        <div className="relative z-10 flex-shrink-0 border-b border-line/60" style={{ background: 'color-mix(in oklch, var(--bg) 55%, transparent)' }}>
+          <button
+            onClick={() => setGalleryOpen((v) => !v)}
+            className="flex w-full items-center justify-between px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-3 hover:bg-surface2/40"
+          >
+            <span>{peer?.display_name?.split(' ')[0] ?? 'Their'}’s albums</span>
+            <svg className={`h-4 w-4 transition-transform ${galleryOpen ? '' : '-rotate-90'}`} fill="none" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {galleryOpen && <AlbumGallery albums={peerAlbums.albums} className="max-h-[40vh]" />}
+        </div>
+      )}
+
       {/* Messages */}
-      <div ref={scrollRef} data-testid="chat-messages" className="flex-1 overflow-y-auto px-[clamp(14px,4vw,40px)] py-4">
+      <div ref={scrollRef} data-testid="chat-messages" className="relative z-10 flex-1 overflow-y-auto px-[clamp(14px,4vw,40px)] py-4">
         <div ref={innerRef} className="flex min-h-full flex-col justify-end gap-2">
           {/* Ephemeral banner */}
           <div className="mono mx-auto mb-3 inline-flex items-center gap-1.5 self-center rounded-full border border-dashed border-lineHi bg-surface px-3 py-1.5 text-[10.5px] tracking-wide text-ink-3">
@@ -377,7 +431,7 @@ export const Chat: React.FC = () => {
       </div>
 
       {/* Composer */}
-      <div className="flex-shrink-0 px-3.5 pt-2.5" style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}>
+      <div className="relative z-10 flex-shrink-0 px-3.5 pt-2.5" style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}>
         {photoError && <p className="mb-2 text-xs text-warn">{photoError}</p>}
         <div className="flex items-end gap-2 rounded-3xl border border-line bg-surface p-1.5 shadow-soft">
           {isGuest ? (

@@ -187,6 +187,13 @@ export const NavBar: React.FC<NavBarProps> = ({
                 >
                   Edit profile
                 </Link>
+                <Link
+                  to="/app/albums"
+                  onClick={() => setProfileMenuOpen(false)}
+                  className="block px-4 py-3 text-ink-2 hover:bg-surface2"
+                >
+                  Albums &amp; background
+                </Link>
                 <div className="my-1 border-t border-line" />
               </>
             )}
@@ -205,6 +212,13 @@ export const NavBar: React.FC<NavBarProps> = ({
                   className="block px-4 py-3 text-ink-2 hover:bg-surface2"
                 >
                   Friends
+                </Link>
+                <Link
+                  to="/app/albums"
+                  onClick={() => setProfileMenuOpen(false)}
+                  className="block px-4 py-3 text-ink-2 hover:bg-surface2"
+                >
+                  Albums &amp; background
                 </Link>
                 <Link
                   to="/app/settings"

@@ -5,6 +5,7 @@ __pycache__/
 backend/.venv/
 backend/dev.db
 backend/_avatars/
+backend/_media/
 *.egg-info/
 
 # Node

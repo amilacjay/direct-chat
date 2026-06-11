@@ -125,3 +125,42 @@ export interface PhotoUploadResponse {
   token: string;
   expires_at: string;
 }
+
+// ---- Albums ----
+export interface AlbumImage {
+  id: string;
+  content_type: string;
+  position: number;
+}
+
+export interface Album {
+  id: string;
+  title: string;
+  cover_image_id?: string | null;
+  position: number;
+  images: AlbumImage[];
+}
+
+export interface AlbumsUsage {
+  used_bytes: number;
+  limit_bytes: number;
+  album_count: number;
+  max_albums: number;
+  max_images_per_album: number;
+  max_image_bytes: number;
+}
+
+export interface MyAlbums {
+  albums: Album[];
+  has_background: boolean;
+  background_image_id?: string | null;
+  usage: AlbumsUsage;
+  is_guest: boolean;
+}
+
+export interface PublicAlbums {
+  user_id: string;
+  can_view: boolean;
+  has_background: boolean;
+  albums: Album[];
+}

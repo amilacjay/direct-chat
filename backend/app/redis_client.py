@@ -129,6 +129,64 @@ async def delete_photo(token: str) -> None:
     await r.delete(PHOTO_KEY.format(token=token))
 
 
+# ---- Guest albums (ephemeral) ----
+# Guests have no DB row, so their single album lives entirely in Redis and
+# expires with the session. Metadata is a JSON doc; image bytes are stored
+# separately (like the photo buffer) so they auto-expire too.
+GUEST_ALBUM_KEY = "guest_album:{gid}"
+GUEST_IMG_KEY = "guest_album_img:{img_id}"
+
+
+async def get_guest_album(gid: str) -> Optional[dict]:
+    r = get_redis()
+    raw = await r.get(GUEST_ALBUM_KEY.format(gid=gid))
+    if not raw:
+        return None
+    # Touch the TTL so an active guest's album stays alive.
+    await r.expire(GUEST_ALBUM_KEY.format(gid=gid), settings.guest_album_ttl_seconds)
+    return json.loads(raw)
+
+
+async def save_guest_album(gid: str, album: dict) -> None:
+    r = get_redis()
+    key = GUEST_ALBUM_KEY.format(gid=gid)
+    await r.set(key, json.dumps(album))
+    await r.expire(key, settings.guest_album_ttl_seconds)
+
+
+async def delete_guest_album(gid: str) -> None:
+    r = get_redis()
+    album = await get_guest_album(gid)
+    if album:
+        for img in album.get("images", []):
+            await r.delete(GUEST_IMG_KEY.format(img_id=img["id"]))
+    await r.delete(GUEST_ALBUM_KEY.format(gid=gid))
+
+
+async def store_guest_image(img_id: str, owner_gid: str, content_type: str, blob: bytes) -> None:
+    r = get_redis()
+    key = GUEST_IMG_KEY.format(img_id=img_id)
+    await r.hset(key, mapping={"owner": owner_gid, "content_type": content_type, "blob": blob})
+    await r.expire(key, settings.guest_album_ttl_seconds)
+
+
+async def get_guest_image(img_id: str) -> Optional[dict]:
+    r = get_redis()
+    data = await r.hgetall(GUEST_IMG_KEY.format(img_id=img_id))
+    if not data:
+        return None
+    return {
+        "owner": data[b"owner"].decode(),
+        "content_type": data[b"content_type"].decode(),
+        "blob": data[b"blob"],
+    }
+
+
+async def delete_guest_image(img_id: str) -> None:
+    r = get_redis()
+    await r.delete(GUEST_IMG_KEY.format(img_id=img_id))
+
+
 # ---- User profile cache ----
 USER_DATA_KEY = "user_data:{uid}"
 USER_DATA_TTL = 300  # 5 minutes

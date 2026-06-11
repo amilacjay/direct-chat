@@ -102,3 +102,105 @@ def _content_type(ext: str) -> str:
         "gif": "image/gif",
         "webp": "image/webp",
     }.get(ext.lower(), "application/octet-stream")
+
+
+# --------------------------------------------------------------------------- #
+# Private media (album images + chat backgrounds)
+#
+# Unlike avatars these are NEVER anonymously readable; bytes are only served
+# through the auth-gated /albums endpoints. The returned object key is prefixed
+# with its backend ("minio/" or "local/") so load/delete stay correct even if a
+# save fell back to local while MinIO was transiently unavailable.
+# --------------------------------------------------------------------------- #
+
+MEDIA_DIR: str = settings.local_media_dir
+
+
+async def save_media(user_id: str, ext: str, data: bytes) -> str:
+    """Store private media bytes, returning a backend-prefixed object key."""
+    if not settings.minio_enabled:
+        return _save_local_media(user_id, ext, data)
+    loop = asyncio.get_event_loop()
+    try:
+        return await loop.run_in_executor(None, partial(_save_minio_media, user_id, ext, data))
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("MinIO media upload failed (%s), using local fallback", exc)
+        return _save_local_media(user_id, ext, data)
+
+
+async def load_media(key: str) -> bytes:
+    """Read media bytes back by key. Raises FileNotFoundError if missing."""
+    if key.startswith("local/"):
+        return _load_local_media(key)
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, partial(_load_minio_media, key))
+
+
+async def delete_media(key: str) -> None:
+    """Best-effort delete; never raises (caller is freeing quota, not gating)."""
+    try:
+        if key.startswith("local/"):
+            path = Path(settings.local_media_dir) / key[len("local/"):]
+            path.unlink(missing_ok=True)
+            return
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, partial(_delete_minio_media, key))
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to delete media %s: %s", key, exc)
+
+
+def _media_client():
+    import minio  # deferred import
+
+    return minio.Minio(
+        settings.minio_endpoint,
+        access_key=settings.minio_access_key,
+        secret_key=settings.minio_secret_key,
+        secure=settings.minio_secure,
+    )
+
+
+def _save_minio_media(user_id: str, ext: str, data: bytes) -> str:
+    client = _media_client()
+    bucket = settings.media_bucket
+    if not client.bucket_exists(bucket):
+        client.make_bucket(bucket)
+        # NOTE: intentionally NO public-read policy — this bucket stays private.
+    object_name = f"media_{user_id}_{uuid.uuid4().hex}.{ext}"
+    client.put_object(
+        bucket,
+        object_name,
+        io.BytesIO(data),
+        length=len(data),
+        content_type=_content_type(ext),
+    )
+    return f"minio/{object_name}"
+
+
+def _load_minio_media(key: str) -> bytes:
+    object_name = key[len("minio/"):] if key.startswith("minio/") else key
+    client = _media_client()
+    response = client.get_object(settings.media_bucket, object_name)
+    try:
+        return response.read()
+    finally:
+        response.close()
+        response.release_conn()
+
+
+def _delete_minio_media(key: str) -> None:
+    object_name = key[len("minio/"):] if key.startswith("minio/") else key
+    _media_client().remove_object(settings.media_bucket, object_name)
+
+
+def _save_local_media(user_id: str, ext: str, data: bytes) -> str:
+    dir_path = Path(settings.local_media_dir)
+    dir_path.mkdir(parents=True, exist_ok=True)
+    filename = f"media_{user_id}_{uuid.uuid4().hex}.{ext}"
+    (dir_path / filename).write_bytes(data)
+    return f"local/{filename}"
+
+
+def _load_local_media(key: str) -> bytes:
+    path = Path(settings.local_media_dir) / key[len("local/"):]
+    return path.read_bytes()

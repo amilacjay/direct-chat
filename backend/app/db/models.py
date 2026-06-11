@@ -48,6 +48,13 @@ class User(Base):
     show_age: Mapped[bool] = mapped_column(Boolean, default=True, server_default='true')
     appear_online: Mapped[bool] = mapped_column(Boolean, default=True)
     accent_hue: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Chat background shown to friends. `key` is a media object key (see storage
+    # save_media); `size` is 0 when the key points at an existing album image
+    # (shared object, not double-counted toward the user's quota).
+    chat_background_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    chat_background_size: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -75,6 +82,51 @@ class Friendship(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+class Album(Base):
+    __tablename__ = "albums"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    title: Mapped[str] = mapped_column(String(60), default="Album")
+    # Selectable thumbnail; nullable FK (no DB-level FK to avoid a circular
+    # dependency with album_images — validated in the router instead).
+    cover_image_id: Mapped[uuid.UUID | None] = mapped_column(UUIDType, nullable=True)
+    position: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    images: Mapped[list["AlbumImage"]] = relationship(
+        back_populates="album",
+        cascade="all, delete-orphan",
+        order_by="AlbumImage.position",
+    )
+
+
+class AlbumImage(Base):
+    __tablename__ = "album_images"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, primary_key=True, default=uuid.uuid4
+    )
+    album_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("albums.id", ondelete="CASCADE"), index=True
+    )
+    object_key: Mapped[str] = mapped_column(Text)
+    content_type: Mapped[str] = mapped_column(String(40), default="image/jpeg")
+    size_bytes: Mapped[int] = mapped_column(Integer, default=0)
+    position: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    album: Mapped["Album"] = relationship(back_populates="images")
 
 
 class Notification(Base):

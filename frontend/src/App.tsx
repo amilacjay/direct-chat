@@ -6,6 +6,7 @@ import { LoginCallback } from './pages/LoginCallback';
 import { AppLayout } from './pages/AppLayout';
 import { Chat } from './pages/Chat';
 import { Profile } from './pages/Profile';
+import { Albums } from './pages/Albums';
 import { Friends } from './pages/Friends';
 import { Settings } from './pages/Settings';
 import { Home } from './pages/Home';
@@ -26,6 +27,7 @@ const App: React.FC = () => {
         <Route index element={<Home />} />
         <Route path="chat/:userId" element={<Chat />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="albums" element={<Albums />} />
         <Route path="friends" element={<Friends />} />
         <Route path="settings" element={<Settings />} />
       </Route>

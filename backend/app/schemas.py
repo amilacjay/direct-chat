@@ -102,6 +102,57 @@ class PhotoUploadResponse(BaseModel):
     expires_at: datetime
 
 
+# ---- Albums ----
+class AlbumImageOut(BaseModel):
+    id: str
+    content_type: str
+    position: int
+
+
+class AlbumOut(BaseModel):
+    id: str
+    title: str
+    cover_image_id: Optional[str] = None
+    position: int
+    images: list[AlbumImageOut] = Field(default_factory=list)
+
+
+class AlbumsUsage(BaseModel):
+    used_bytes: int
+    limit_bytes: int
+    album_count: int
+    max_albums: int
+    max_images_per_album: int
+    max_image_bytes: int
+
+
+class MyAlbumsResponse(BaseModel):
+    """The caller's own albums, plus quota + background state."""
+    albums: list[AlbumOut] = Field(default_factory=list)
+    has_background: bool = False
+    # Set when the background reuses an album image (so the UI can highlight it).
+    background_image_id: Optional[str] = None
+    usage: AlbumsUsage
+    is_guest: bool = False
+
+
+class PublicAlbumsResponse(BaseModel):
+    """Another user's albums as seen by the caller (empty if not permitted)."""
+    user_id: str
+    can_view: bool = False
+    has_background: bool = False
+    albums: list[AlbumOut] = Field(default_factory=list)
+
+
+class AlbumCreate(BaseModel):
+    title: Optional[str] = Field(default="Album", min_length=1, max_length=60)
+
+
+class AlbumUpdate(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=60)
+    cover_image_id: Optional[str] = None
+
+
 # ---- WebRTC / WS config ----
 class IceServer(BaseModel):
     urls: str

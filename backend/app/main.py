@@ -57,6 +57,7 @@ from app.auth.router import router as auth_router  # noqa: E402
 from app.users.router import router as users_router  # noqa: E402
 from app.friends.router import router as friends_router  # noqa: E402
 from app.photos.router import router as photos_router  # noqa: E402
+from app.albums.router import router as albums_router  # noqa: E402
 from app.notifications.router import router as notifications_router  # noqa: E402
 from app.ws.router import router as ws_router  # noqa: E402
 
@@ -64,5 +65,6 @@ app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(users_router, prefix="/users", tags=["users"])
 app.include_router(friends_router, prefix="/friends", tags=["friends"])
 app.include_router(photos_router, prefix="/photos", tags=["photos"])
+app.include_router(albums_router, prefix="/albums", tags=["albums"])
 app.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
 app.include_router(ws_router, tags=["ws"])
