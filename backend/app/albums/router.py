@@ -607,7 +607,7 @@ async def user_albums(
             albums=[_guest_album_to_out(g)] if g else [],
         )
 
-    can_view = await are_friends(db, principal.id, user_id)
+    can_view = await _can_view(db, principal, user_id)
     if not can_view:
         return PublicAlbumsResponse(user_id=user_id, can_view=False, has_background=False, albums=[])
 
@@ -624,6 +624,18 @@ async def user_albums(
         has_background=bool(owner and owner.chat_background_key),
         albums=[_album_to_out(a) for a in albums],
     )
+
+
+async def _can_view(db: AsyncSession, principal: Principal, owner_id: str) -> bool:
+    """Whether `principal` may see registered user `owner_id`'s albums/background.
+
+    Albums are friends-only *between registered users*. Guests have no friend
+    graph, so a guest viewer is always allowed — otherwise the album/background
+    decorations would never appear in any chat involving a guest.
+    """
+    if principal.is_guest:
+        return True
+    return await are_friends(db, principal.id, owner_id)
 
 
 def _no_store_image(data: bytes, content_type: str) -> Response:
@@ -660,7 +672,7 @@ async def serve_image(
         return _no_store_image(guest_img["blob"], guest_img["content_type"])
 
     image, owner_id = row
-    if not await are_friends(db, principal.id, str(owner_id)):
+    if not await _can_view(db, principal, str(owner_id)):
         raise HTTPException(status_code=403, detail="Not permitted")
 
     try:
@@ -685,7 +697,7 @@ async def serve_background(
             raise HTTPException(status_code=404, detail="No background")
         return _no_store_image(guest_img["blob"], guest_img["content_type"])
 
-    if not await are_friends(db, principal.id, user_id):
+    if not await _can_view(db, principal, user_id):
         raise HTTPException(status_code=403, detail="Not permitted")
     try:
         uid = uuid.UUID(user_id)
