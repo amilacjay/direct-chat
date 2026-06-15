@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App';
 import { ToastProvider } from './components/Toast';
+import { startUpdateChecks } from './lib/updateChecker';
 import './index.css';
 
 // Keep every client on the latest build. sw.js is served with no-cache so the
@@ -25,6 +26,10 @@ const updateSW = registerSW({
     updateSW(true);
   },
 });
+
+// CDN/service-worker-proof safety net: detect a new deployed build and reload
+// onto it even if a stale sw.js is being served from cache.
+startUpdateChecks();
 
 console.info(`Direct ${__APP_VERSION__} · built ${__BUILD_TIME__}`);
 
