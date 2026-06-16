@@ -7,6 +7,7 @@ import App from './App';
 import { ToastProvider } from './components/Toast';
 import { startUpdateChecks } from './lib/updateChecker';
 import './index.css';
+import 'leaflet/dist/leaflet.css';
 
 // Keep every client on the latest build. sw.js is served with no-cache so the
 // browser revalidates it on load; we additionally poll for a freshly deployed

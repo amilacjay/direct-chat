@@ -55,6 +55,7 @@ class User(Base):
     chat_background_size: Mapped[int] = mapped_column(
         Integer, default=0, server_default="0"
     )
+    share_location: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

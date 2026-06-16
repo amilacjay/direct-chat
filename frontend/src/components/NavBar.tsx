@@ -214,6 +214,13 @@ export const NavBar: React.FC<NavBarProps> = ({
                   Friends
                 </Link>
                 <Link
+                  to="/app/nearby"
+                  onClick={() => setProfileMenuOpen(false)}
+                  className="block px-4 py-3 text-ink-2 hover:bg-surface2"
+                >
+                  Nearby
+                </Link>
+                <Link
                   to="/app/albums"
                   onClick={() => setProfileMenuOpen(false)}
                   className="block px-4 py-3 text-ink-2 hover:bg-surface2"

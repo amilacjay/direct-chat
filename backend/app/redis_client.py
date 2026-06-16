@@ -215,6 +215,7 @@ async def set_cached_user_data(uid: str, user) -> None:
         "show_age": user.show_age,
         "appear_online": user.appear_online,
         "accent_hue": user.accent_hue,
+        "share_location": getattr(user, "share_location", False),
         "created_at": user.created_at.isoformat() if user.created_at else None,
     }
     await r.set(USER_DATA_KEY.format(uid=uid), json.dumps(data), ex=USER_DATA_TTL)
@@ -223,6 +224,75 @@ async def set_cached_user_data(uid: str, user) -> None:
 async def invalidate_user_cache(uid: str) -> None:
     r = get_redis()
     await r.delete(USER_DATA_KEY.format(uid=uid))
+
+
+# ---- Location sharing (ephemeral, Redis-only) ----
+LOCATION_KEY = "loc:{uid}"
+LOCATION_TTL = 90  # refreshed every 30s by location_update WS messages
+LOCATION_INDEX = "loc:index"
+
+
+async def set_location(
+    uid: str,
+    lat: float,
+    lng: float,
+    display_name: str,
+    is_guest: bool,
+    avatar_url: Optional[str] = None,
+    accent_hue: Optional[int] = None,
+) -> None:
+    r = get_redis()
+    await r.hset(
+        LOCATION_KEY.format(uid=uid),
+        mapping={
+            "lat": str(round(lat, 5)),
+            "lng": str(round(lng, 5)),
+            "display_name": display_name,
+            "is_guest": "1" if is_guest else "0",
+            "avatar_url": avatar_url or "",
+            "accent_hue": str(accent_hue) if accent_hue is not None else "",
+            "ts": str(int(time.time())),
+        },
+    )
+    await r.expire(LOCATION_KEY.format(uid=uid), LOCATION_TTL)
+    await r.sadd(LOCATION_INDEX, uid)
+
+
+async def clear_location(uid: str) -> None:
+    r = get_redis()
+    await r.delete(LOCATION_KEY.format(uid=uid))
+    await r.srem(LOCATION_INDEX, uid)
+
+
+async def list_locations() -> list[dict]:
+    r = get_redis()
+    uids = await r.smembers(LOCATION_INDEX)
+    out: list[dict] = []
+    for raw in uids:
+        uid = raw.decode() if isinstance(raw, bytes) else raw
+        data = await r.hgetall(LOCATION_KEY.format(uid=uid))
+        if not data:
+            await r.srem(LOCATION_INDEX, uid)
+            continue
+        decoded = {
+            (k.decode() if isinstance(k, bytes) else k): (
+                v.decode() if isinstance(v, bytes) else v
+            )
+            for k, v in data.items()
+        }
+        accent_raw = decoded.get("accent_hue", "")
+        out.append(
+            {
+                "id": uid,
+                "lat": float(decoded["lat"]),
+                "lng": float(decoded["lng"]),
+                "display_name": decoded.get("display_name", "Unknown"),
+                "avatar_url": decoded.get("avatar_url") or None,
+                "is_guest": decoded.get("is_guest") == "1",
+                "accent_hue": int(accent_raw) if accent_raw else None,
+            }
+        )
+    return out
 
 
 # ---- Rate limiting ----

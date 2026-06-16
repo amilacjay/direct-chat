@@ -16,8 +16,10 @@ from app.db.database import SessionLocal
 from app.db.models import User
 from app.redis_client import (
     check_rate,
+    clear_location,
     list_online,
     refresh_online,
+    set_location,
     set_offline,
     set_online,
 )
@@ -82,6 +84,7 @@ async def websocket_endpoint(websocket: WebSocket):
     avatar_url: Optional[str] = None
     gender: Optional[str] = None
     age: Optional[int] = None
+    accent_hue: Optional[int] = None
     db_user: Optional[User] = None
 
     if not is_guest:
@@ -99,6 +102,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     avatar_url = db_user.avatar_url
                     gender = db_user.gender if db_user.show_gender else None
                     age = db_user.age if db_user.show_age else None
+                    accent_hue = db_user.accent_hue
         except Exception:
             pass
     else:
@@ -235,6 +239,20 @@ async def websocket_endpoint(websocket: WebSocket):
                         exclude={uid},
                     )
 
+            elif msg_type == "location_update":
+                loc_data = data.get("data", {})
+                try:
+                    lat = float(loc_data["lat"])
+                    lng = float(loc_data["lng"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+                    continue
+                await set_location(uid, lat, lng, display_name, is_guest, avatar_url, accent_hue)
+
+            elif msg_type == "location_off":
+                await clear_location(uid)
+
             elif msg_type == "ping":
                 await refresh_online(uid)
                 await websocket.send_text(json.dumps({"type": "pong"}))
@@ -247,6 +265,7 @@ async def websocket_endpoint(websocket: WebSocket):
         is_last_session = await manager.disconnect(uid, websocket)
         if is_last_session:
             await set_offline(uid)
+            await clear_location(uid)
             await manager.broadcast(
                 {
                     "type": "presence",

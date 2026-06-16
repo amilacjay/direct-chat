@@ -10,6 +10,7 @@ import { Albums } from './pages/Albums';
 import { Friends } from './pages/Friends';
 import { Settings } from './pages/Settings';
 import { Home } from './pages/Home';
+import { Nearby } from './pages/Nearby';
 
 const App: React.FC = () => {
   return (
@@ -29,6 +30,7 @@ const App: React.FC = () => {
         <Route path="profile" element={<Profile />} />
         <Route path="albums" element={<Albums />} />
         <Route path="friends" element={<Friends />} />
+        <Route path="nearby" element={<Nearby />} />
         <Route path="settings" element={<Settings />} />
       </Route>
       {/* Catch-all */}

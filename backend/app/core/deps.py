@@ -36,6 +36,7 @@ class CachedUser:
     show_age: bool = True
     appear_online: bool = True
     accent_hue: Optional[int] = None
+    share_location: bool = False
     created_at: Optional[datetime] = None
 
     @classmethod
@@ -58,6 +59,7 @@ class CachedUser:
             show_age=d.get("show_age", True),
             appear_online=d.get("appear_online", True),
             accent_hue=d.get("accent_hue"),
+            share_location=d.get("share_location", False),
             created_at=created_at,
         )
 

@@ -1,8 +1,9 @@
 """Users router: profile retrieval, update, avatar upload, online list."""
+import math
 import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,8 +11,8 @@ from app.config import settings
 from app.core.deps import Principal, get_current_principal, get_current_user, get_fresh_user
 from app.db.database import get_db
 from app.db.models import User
-from app.redis_client import list_online, set_cached_user_data, invalidate_user_cache
-from app.schemas import VALID_GENDERS, OnlineUser, PublicUser, UpdateProfile
+from app.redis_client import clear_location, list_locations, list_online, set_cached_user_data, invalidate_user_cache
+from app.schemas import VALID_GENDERS, NearbyUser, OnlineUser, PublicUser, UpdateProfile
 from app.storage import save_avatar
 
 router = APIRouter()
@@ -39,6 +40,14 @@ def _detect_image_type(data: bytes) -> Optional[str]:
     return None
 
 
+def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlng = math.radians(lng2 - lng1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng / 2) ** 2
+    return R * 2 * math.asin(math.sqrt(a))
+
+
 def _user_to_public(user: User, for_self: bool = False) -> PublicUser:
     return PublicUser(
         id=str(user.id),
@@ -53,6 +62,7 @@ def _user_to_public(user: User, for_self: bool = False) -> PublicUser:
         is_guest=False,
         created_at=user.created_at,
         accent_hue=user.accent_hue if for_self else None,
+        share_location=user.share_location,
     )
 
 
@@ -135,6 +145,11 @@ async def update_me(
     if 'accent_hue' in body.model_fields_set:
         user.accent_hue = body.accent_hue
 
+    if body.share_location is not None:
+        user.share_location = body.share_location
+        if not body.share_location:
+            await clear_location(str(user.id))
+
     await db.commit()
     await db.refresh(user)
     await set_cached_user_data(str(user.id), user)
@@ -186,6 +201,50 @@ async def delete_avatar(
     await db.refresh(user)
     await set_cached_user_data(str(user.id), user)
     return _user_to_public(user, for_self=True)
+
+
+@router.get("/nearby", response_model=list[NearbyUser])
+async def get_nearby_users(
+    radius_km: float = Query(default=50.0, ge=0.1, le=500.0),
+    principal: Principal = Depends(get_current_principal),
+):
+    """Return users who are sharing their location within radius_km of the caller.
+
+    The caller must also be sharing their location (have a location entry in Redis).
+    """
+    all_locs = await list_locations()
+
+    # Find caller's own location entry
+    my_loc = next((u for u in all_locs if u["id"] == principal.id), None)
+    if my_loc is None:
+        raise HTTPException(
+            status_code=403,
+            detail="Enable location sharing to see nearby users",
+        )
+
+    my_lat, my_lng = my_loc["lat"], my_loc["lng"]
+    result: list[NearbyUser] = []
+
+    for u in all_locs:
+        if u["id"] == principal.id:
+            continue
+        dist = _haversine_km(my_lat, my_lng, u["lat"], u["lng"])
+        if dist <= radius_km:
+            result.append(
+                NearbyUser(
+                    id=u["id"],
+                    display_name=u["display_name"],
+                    avatar_url=u.get("avatar_url"),
+                    is_guest=u.get("is_guest", False),
+                    accent_hue=u.get("accent_hue"),
+                    lat=u["lat"],
+                    lng=u["lng"],
+                    distance_km=round(dist, 2),
+                )
+            )
+
+    result.sort(key=lambda x: x.distance_km)
+    return result
 
 
 @router.get("/{user_id}", response_model=PublicUser)

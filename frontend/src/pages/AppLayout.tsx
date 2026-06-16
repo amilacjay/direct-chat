@@ -8,6 +8,7 @@ import { NavBar } from '../components/NavBar';
 import { OnlineUsers } from './OnlineUsers';
 import { useIncomingMessages } from '../hooks/useIncomingMessages';
 import { useAccentColor } from '../hooks/useAccentColor';
+import { useLocationTracking } from '../hooks/useLocationTracking';
 import type { NotificationOut, WsNotification, WsSignal } from '../lib/types';
 
 export const AppLayout: React.FC = () => {
@@ -27,6 +28,7 @@ export const AppLayout: React.FC = () => {
 
   useIncomingMessages();
   useAccentColor();
+  useLocationTracking(!!(user && !user.is_guest && user.share_location));
 
   useEffect(() => {
     if (!token) {

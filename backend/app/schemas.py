@@ -49,6 +49,7 @@ class PublicUser(BaseModel):
     is_guest: bool = False
     created_at: Optional[datetime] = None
     accent_hue: Optional[int] = None
+    share_location: bool = False
 
 
 VALID_GENDERS = {"male", "female", "nonbinary", "other"}
@@ -64,6 +65,7 @@ class UpdateProfile(BaseModel):
     show_age: Optional[bool] = None
     appear_online: Optional[bool] = None
     accent_hue: Optional[int] = Field(default=None, ge=0, le=360)
+    share_location: Optional[bool] = None
 
 
 class OnlineUser(BaseModel):
@@ -73,6 +75,17 @@ class OnlineUser(BaseModel):
     gender: Optional[str] = None
     age: Optional[int] = None
     is_guest: bool = False
+
+
+class NearbyUser(BaseModel):
+    id: str
+    display_name: str
+    avatar_url: Optional[str] = None
+    is_guest: bool = False
+    accent_hue: Optional[int] = None
+    lat: float
+    lng: float
+    distance_km: float
 
 
 # ---- Friends ----
@@ -166,11 +179,13 @@ class RtcConfig(BaseModel):
 
 # ---- WebSocket message envelope ----
 WsType = Literal[
-    "presence",        # server -> client: online list / changes
-    "signal",          # client <-> client via server: webrtc sdp/ice
-    "relay",           # client <-> client via server: fallback text message
-    "notification",    # server -> client: friend events
-    "presence_set",    # client -> server: set appear_online
+    "presence",         # server -> client: online list / changes
+    "signal",           # client <-> client via server: webrtc sdp/ice
+    "relay",            # client <-> client via server: fallback text message
+    "notification",     # server -> client: friend events
+    "presence_set",     # client -> server: set appear_online
+    "location_update",  # client -> server: share current coordinates
+    "location_off",     # client -> server: stop sharing location
     "ping",
     "pong",
     "error",

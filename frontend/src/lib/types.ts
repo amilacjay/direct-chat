@@ -11,6 +11,18 @@ export interface PublicUser {
   is_guest: boolean;
   created_at?: string | null;
   accent_hue?: number | null;
+  share_location?: boolean;
+}
+
+export interface NearbyUser {
+  id: string;
+  display_name: string;
+  avatar_url?: string | null;
+  is_guest: boolean;
+  accent_hue?: number | null;
+  lat: number;
+  lng: number;
+  distance_km: number;
 }
 
 export interface OnlineUser {
@@ -58,6 +70,7 @@ export interface UpdateProfile {
   show_age?: boolean;
   appear_online?: boolean;
   accent_hue?: number | null;
+  share_location?: boolean;
 }
 
 export interface GuestProfileUpdate {
