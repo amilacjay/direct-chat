@@ -9,7 +9,7 @@ import { Avatar } from '../components/Avatar';
 import type { NearbyUser, PublicUser } from '../lib/types';
 
 // Fix leaflet's default icon paths broken by bundlers
-delete (L.Icon.Default.prototype as Record<string, unknown>)._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
