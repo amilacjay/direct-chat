@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { wsClient } from '../lib/websocket';
@@ -7,8 +7,12 @@ import { useChatStore } from '../store/chat';
 import { Avatar } from '../components/Avatar';
 import { GenderIcon, genderColor } from '../components/GenderIcon';
 import { ProfileModal } from '../components/ProfileModal';
-import type { Friend, OnlineUser } from '../lib/types';
+import type { Friend, NearbyUser, OnlineUser } from '../lib/types';
 import type { WsPresenceSnapshot, WsPresenceJoin, WsPresenceLeave } from '../lib/types';
+
+function formatDist(km: number) {
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+}
 
 interface Props {
   collapsed?: boolean;
@@ -26,6 +30,8 @@ export const OnlineUsers: React.FC<Props> = ({ collapsed = false, onToggle }) =>
   const [friends, setFriends] = useState<Friend[]>([]);
   const [addingFriend, setAddingFriend] = useState<string | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [distanceMap, setDistanceMap] = useState<Map<string, number>>(new Map());
+  const nearbyTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     api.get<OnlineUser[]>('/users/online').then(setOnlineUsers).catch(() => {});
@@ -35,6 +41,20 @@ export const OnlineUsers: React.FC<Props> = ({ collapsed = false, onToggle }) =>
     if (isGuest) return;
     api.get<Friend[]>('/friends').then(setFriends).catch(() => {});
   }, [isGuest]);
+
+  useEffect(() => {
+    if (!me?.share_location) return;
+    const refresh = () => {
+      api.get<NearbyUser[]>('/users/nearby').then((list) => {
+        setDistanceMap(new Map(list.map((u) => [u.id, u.distance_km])));
+      }).catch(() => {});
+    };
+    refresh();
+    nearbyTimer.current = setInterval(refresh, 30_000);
+    return () => {
+      if (nearbyTimer.current) clearInterval(nearbyTimer.current);
+    };
+  }, [me?.share_location]);
 
   const handlePresence = useCallback(
     (msg: WsPresenceSnapshot | WsPresenceJoin | WsPresenceLeave) => {
@@ -94,7 +114,7 @@ export const OnlineUsers: React.FC<Props> = ({ collapsed = false, onToggle }) =>
     </h2>
   );
 
-  const UserMeta: React.FC<{ gender?: string | null; age?: number | null; status: string }> = ({ gender, age, status }) => {
+  const UserMeta: React.FC<{ gender?: string | null; age?: number | null; status: string; distanceKm?: number }> = ({ gender, age, status, distanceKm }) => {
     const parts: React.ReactNode[] = [];
     if (gender) {
       parts.push(
@@ -106,6 +126,17 @@ export const OnlineUsers: React.FC<Props> = ({ collapsed = false, onToggle }) =>
     if (age) parts.push(<span key="a">{age}</span>);
     if (parts.length) parts.push(<span key="sep" className="text-ink-4">·</span>);
     parts.push(<span key="s">{status}</span>);
+    if (distanceKm !== undefined) {
+      parts.push(<span key="dsep" className="text-ink-4">·</span>);
+      parts.push(
+        <span key="d" className="flex items-center gap-0.5 text-accent">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {formatDist(distanceKm)}
+        </span>
+      );
+    }
     return <p className="flex items-center gap-1 text-xs text-ink-3">{parts}</p>;
   };
 
@@ -173,7 +204,7 @@ export const OnlineUsers: React.FC<Props> = ({ collapsed = false, onToggle }) =>
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[15px] font-semibold text-ink">{f.user.display_name}</p>
-                    <UserMeta gender={f.user.gender} age={f.user.age} status={online ? 'Online' : 'Offline'} />
+                    <UserMeta gender={f.user.gender} age={f.user.age} status={online ? 'Online' : 'Offline'} distanceKm={distanceMap.get(f.user.id)} />
                   </div>
                   <UnreadBadge id={f.user.id} />
                 </button>
@@ -211,9 +242,9 @@ export const OnlineUsers: React.FC<Props> = ({ collapsed = false, onToggle }) =>
               <p className="truncate text-[15px] font-semibold text-ink">{u.display_name}</p>
               {u.is_guest
                 ? (u.gender || u.age)
-                  ? <UserMeta gender={u.gender} age={u.age} status="Guest" />
+                  ? <UserMeta gender={u.gender} age={u.age} status="Guest" distanceKm={distanceMap.get(u.id)} />
                   : <p className="text-xs text-ink-3">Guest · anonymous</p>
-                : <UserMeta gender={u.gender} age={u.age} status="Online now" />
+                : <UserMeta gender={u.gender} age={u.age} status="Online now" distanceKm={distanceMap.get(u.id)} />
               }
             </div>
             <UnreadBadge id={u.id} />
