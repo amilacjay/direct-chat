@@ -1,4 +1,5 @@
 """FastAPI application entrypoint. Wires routers, CORS, and lifecycle."""
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -16,9 +17,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("app")
 
 
+def _run_alembic_migrations() -> None:
+    """Apply any pending Alembic migrations synchronously."""
+    from alembic import command
+    from alembic.config import Config
+
+    alembic_cfg = Config("alembic.ini")
+    command.upgrade(alembic_cfg, "head")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
+    # Startup — run migrations first so new columns exist before any query fires
+    await asyncio.to_thread(_run_alembic_migrations)
     await init_db()
     await bus.start_producer()
     logger.info("Application started (env=%s)", settings.environment)
